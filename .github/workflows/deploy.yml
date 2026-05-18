@@ -1,0 +1,23 @@
+name: Deploy Blink flask
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Ubuntu Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/web/blinkpy.flask
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            sudo systemctl restart blinkpy.flask

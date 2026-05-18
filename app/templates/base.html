@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="{{ get_current_language() }}" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" id="theme-color-meta" content="#09090E" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="{{ t('app.title') }}" />
+  <meta name="description" content="{{ t('app.subtitle') }}" />
+
+  <title>{{ t('app.title') }}</title>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
+  <!-- Set theme before first paint to prevent flash -->
+  <script>
+    (function() {
+      var t = localStorage.getItem('blink-theme') || 'dark';
+      document.documentElement.classList.toggle('dark', t !== 'light');
+      if (t === 'light') document.getElementById('theme-color-meta').content = '#F1F5F9';
+    })();
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'system-ui', 'sans-serif'],
+            mono: ['"Space Mono"', 'monospace'],
+          },
+          keyframes: {
+            fadeUp:    { '0%': { opacity:0, transform:'translateY(10px)' }, '100%': { opacity:1, transform:'none' } },
+            fadeIn:    { '0%': { opacity:0 }, '100%': { opacity:1 } },
+            shimmer:   { '0%': { backgroundPosition:'200% 0' }, '100%': { backgroundPosition:'-200% 0' } },
+            scanBeam:  { '0%': { transform:'translateX(-100%)' }, '100%': { transform:'translateX(450%)' } },
+            pulseRing: { '0%': { transform:'scale(1)', opacity:0.7 }, '100%': { transform:'scale(2.4)', opacity:0 } },
+            dlBounce:  { '0%,100%': { transform:'translateY(0)' }, '50%': { transform:'translateY(2px)' } },
+          },
+          animation: {
+            'fade-up':    'fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both',
+            'fade-in':    'fadeIn 0.25s ease both',
+            shimmer:      'shimmer 1.8s linear infinite',
+            'scan-beam':  'scanBeam 3s linear infinite',
+            'pulse-ring': 'pulseRing 2.2s cubic-bezier(0.2,0,0.8,1) infinite',
+            'dl-bounce':  'dlBounce 1.1s ease-in-out infinite',
+            spin:         'spin 0.7s linear infinite',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    [x-cloak]{display:none!important}
+    @keyframes _pgIn{from{opacity:0}to{opacity:1}}
+    body{animation:_pgIn 0.18s ease both}
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+</head>
+<body class="min-h-dvh antialiased">
+
+{% block body %}{% endblock %}
+
+<script>
+window.APP_I18N = {
+  status_armed:        "{{ t('dashboard.status_armed') }}",
+  status_disarmed:     "{{ t('dashboard.status_disarmed') }}",
+  status_disconnected: "{{ t('dashboard.status_disconnected') }}",
+  status_unknown:      "{{ t('dashboard.status_unknown') }}",
+  today:               "{{ t('dashboard.today') }}",
+  yesterday:           "{{ t('dashboard.yesterday') }}",
+  error_connection:    "{{ t('messages.error_connection') }}",
+  system_armed:        "{{ t('messages.system_armed') }}",
+  system_disarmed:     "{{ t('messages.system_disarmed') }}",
+  blink_login_ok:      "{{ t('messages.blink_login_ok') }}",
+  verify_ok:           "{{ t('messages.verify_ok') }}",
+  videos_error:        "{{ t('messages.videos_error') }}",
+  videos_downloaded:   "{{ t('messages.videos_downloaded') }}",
+  connection_retry:    "{{ t('messages.connection_retry') }}",
+  session_expired:     "{{ t('messages.session_expired') }}",
+  date_locale:         "{{ {'en': 'en-US', 'it': 'it-IT', 'zh': 'zh-CN'}.get(get_current_language(), 'en-US') }}",
+};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

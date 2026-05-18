@@ -1,0 +1,37 @@
+<div class="relative" @click.outside="showLangMenu = false">
+  <button
+    @click="showLangMenu = !showLangMenu"
+    class="flex items-center gap-1 px-2 py-1.5 rounded-xl t-sub cursor-pointer"
+    style="transition: color 0.15s, background-color 0.15s"
+    :aria-label="'{{ t('language.select') }}'"
+  >
+    <span x-text="({en:'🇬🇧',it:'🇮🇹',zh:'🇨🇳'})[currentLang]" class="text-base leading-none"></span>
+    <span x-text="currentLang.toUpperCase()" class="text-[11px] font-bold font-mono tracking-wider"></span>
+  </button>
+  <div
+    x-cloak
+    x-show="showLangMenu"
+    x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+    x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-120"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0 scale-95"
+    class="absolute right-0 mt-2 w-36 rounded-2xl overflow-hidden z-20"
+    style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 8px 32px var(--shadow)"
+  >
+    <template x-for="lang in [{code:'en',label:'English',flag:'🇬🇧'},{code:'it',label:'Italiano',flag:'🇮🇹'},{code:'zh',label:'中文',flag:'🇨🇳'}]" :key="lang.code">
+      <button
+        @click="changeLanguage(lang.code)"
+        class="w-full flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer t-smooth"
+        :class="currentLang === lang.code ? 'font-semibold t-text' : 'font-medium t-sub'"
+        :style="currentLang === lang.code ? 'background: var(--raised)' : ''"
+        onmouseenter="this.style.background='var(--raised)'"
+        onmouseleave="this.style.background=this.classList.contains('t-text')?'var(--raised)':''"
+      >
+        <span x-text="lang.flag" class="text-base leading-none flex-shrink-0"></span>
+        <span x-text="lang.label"></span>
+      </button>
+    </template>
+  </div>
+</div>

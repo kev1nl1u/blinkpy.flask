@@ -1,0 +1,50 @@
+<div
+  x-cloak
+  x-show="activeVideo"
+  x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-250"
+  x-transition:enter-start="opacity-0"
+  x-transition:enter-end="opacity-100"
+  x-transition:leave="transition ease-in duration-180"
+  x-transition:leave-start="opacity-100"
+  x-transition:leave-end="opacity-0"
+  class="fixed inset-0 z-50 flex items-center justify-center px-4 modal-bg"
+  @click.self="activeVideo = null"
+  @keydown.escape.window="activeVideo = null"
+  role="dialog" aria-modal="true" aria-label="Riproduzione video"
+>
+  <div
+    class="w-full max-w-lg"
+    x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-300"
+    x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-180"
+    x-transition:leave-start="opacity-100 scale-100"
+    x-transition:leave-end="opacity-0 scale-97"
+  >
+    <div class="rounded-2xl overflow-hidden t-smooth" style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
+      <div class="flex items-center justify-between px-4 py-3" style="border-bottom: 1px solid var(--border)">
+        <div class="min-w-0">
+          <p class="text-sm font-bold t-text truncate" x-text="activeVideo?.camera_name"></p>
+          <p class="text-xs t-sub mt-0.5 font-mono" x-text="activeVideo?.created_at_fmt"></p>
+        </div>
+        <button
+          @click="activeVideo = null"
+          class="ml-3 flex-shrink-0 p-2 rounded-xl t-sub cursor-pointer t-smooth"
+          style="transition: color 0.15s, background-color 0.15s"
+           aria-label="{{ t('video.close_video') }}"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <video
+        x-show="activeVideo"
+        :src="activeVideo?.url"
+        controls autoplay playsinline
+        class="w-full block"
+        style="aspect-ratio:16/9; background:#000"
+      ></video>
+    </div>
+  </div>
+</div>

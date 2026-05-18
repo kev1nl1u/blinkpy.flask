@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Secrets & credentials
+.env
+credentials.json
+
+# Runtime data
+flask_session/
+local_clips/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Claude
+.claude/

@@ -1,0 +1,486 @@
+<template x-if="currentView === 'dashboard'">
+  <div class="flex-1 flex flex-col max-h-dvh">
+
+    <!-- Header -->
+    <header class="flex-shrink-0 safe-top px-4 pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <!-- Logo con menu dropdown -->
+        <div class="relative" @click.outside="showLogoMenu = false">
+          <button
+            @click="showLogoMenu = !showLogoMenu"
+            class="w-8 h-8 rounded-xl t-surface flex items-center justify-center cursor-pointer t-smooth"
+            style="border:1px solid var(--border-s); transition: border-color 0.15s, box-shadow 0.15s"
+            :style="showLogoMenu ? 'border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2)' : ''"
+            aria-label="Menu"
+          >
+            <svg class="w-4 h-4 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </button>
+
+          <!-- Dropdown menu -->
+          <div
+            x-show="showLogoMenu"
+            x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-120"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="absolute left-0 mt-2 w-48 rounded-2xl overflow-hidden z-20"
+            style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 8px 32px var(--shadow)"
+          >
+            <button
+              @click="showLogoMenu = false; showResetModal = true"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth"
+              style="color: var(--danger); transition: background-color 0.15s"
+              onmouseenter="this.style.background='rgba(220,38,38,0.07)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+               {{ t('dashboard.reset_server') }}
+            </button>
+          </div>
+        </div>
+
+        <span class="font-bold text-[16px] t-text" style="letter-spacing:-0.2px">Blink</span>
+      </div>
+
+      <!-- Modal conferma reset -->
+      <div
+        x-show="showResetModal"
+        x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @keydown.escape.window="!resetLoading && (showResetModal = false)"
+        role="dialog" aria-modal="true"
+      >
+        <div
+          x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-250"
+          x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+          x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+          class="w-full max-w-sm rounded-2xl p-6 space-y-5"
+          style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)"
+        >
+          <!-- Icon + title -->
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: rgba(220,38,38,0.1); border: 1px solid rgba(220,38,38,0.2)">
+              <svg class="w-5 h-5" style="color:var(--danger)" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+            </div>
+            <div>
+               <p class="font-bold t-text">{{ t('dashboard.reset_modal_title') }}</p>
+               <p class="text-sm t-sub mt-1">{{ t('dashboard.reset_warning') }}</p>
+            </div>
+          </div>
+
+          <!-- What gets deleted -->
+          <ul class="space-y-1.5 text-sm t-sub pl-1">
+            <li class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--danger)"></div>
+              {{ t('dashboard.reset_blink_credentials') }}
+            </li>
+            <li class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--danger)"></div>
+              {{ t('dashboard.reset_active_sessions') }}
+            </li>
+            <li class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--danger)"></div>
+              {{ t('dashboard.reset_downloaded_videos') }}
+            </li>
+          </ul>
+
+          <!-- Actions -->
+          <div class="flex gap-3 pt-1">
+            <button
+              @click="showResetModal = false"
+              :disabled="resetLoading"
+              class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer t-smooth"
+              style="background: var(--raised); border: 1px solid var(--border-s)"
+            >
+              {{ t('dashboard.cancel') }}
+            </button>
+            <button
+              @click="resetServer()"
+              :disabled="resetLoading"
+              class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2"
+              style="background: var(--danger); color: #fff; border: none; opacity: 1; transition: opacity 0.15s"
+              :style="resetLoading ? 'opacity:0.6; cursor:not-allowed' : ''"
+            >
+              <div x-show="resetLoading" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.3); border-top-color:#fff"></div>
+              <span x-text="resetLoading ? '{{ t('dashboard.resetting') }}' : '{{ t('dashboard.confirm_reset') }}'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <!-- Theme toggle -->
+        <button
+          @click="toggleTheme()"
+          class="p-2 rounded-xl t-sub cursor-pointer t-smooth"
+          style="transition: color 0.15s, background-color 0.15s"
+          :aria-label="theme === 'dark' ? '{{ t('dashboard.dark_mode') }}' : '{{ t('dashboard.light_mode') }}'"
+        >
+          <svg x-show="theme === 'dark'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+          </svg>
+          <svg x-show="theme === 'light'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+          </svg>
+        </button>
+
+        <!-- Language switcher -->
+        {% include 'partials/lang_switcher.html' %}
+
+        <!-- Logout -->
+        <button
+          @click="logout()"
+          class="p-2 rounded-xl t-sub cursor-pointer"
+          style="transition: color 0.15s"
+          aria-label="{{ t('dashboard.logout') }}"
+        >
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Scrollable body -->
+    <main
+      id="scroll-root"
+      class="flex-1 overflow-y-auto"
+      @touchstart.passive="ptr_touchStart($event)"
+      @touchmove.passive="ptr_touchMove($event)"
+      @touchend.passive="ptr_touchEnd($event)"
+    >
+      <!-- Pull-to-refresh indicator -->
+      <div
+        class="flex items-center justify-center overflow-hidden"
+        style="transition: height 0.15s ease, opacity 0.15s ease"
+        :style="`height: ${ptrH}px; opacity: ${Math.min(ptrH/60, 1)}`"
+      >
+        <div
+          class="w-6 h-6 rounded-full"
+          :class="ptrRefreshing ? 'animate-spin' : ''"
+          :style="`border: 2px solid var(--border-s); border-top-color: var(--accent); transform: rotate(${!ptrRefreshing ? ptrRot : 0}deg)`"
+        ></div>
+      </div>
+
+      <div class="px-4 pb-10 pt-2 space-y-4 max-w-lg mx-auto">
+
+        <!-- ── STATUS CARD ──────────────────────────────────── -->
+        <div
+          class="relative rounded-3xl overflow-hidden t-smooth"
+          :class="systemArmed && blinkConnected ? 'glow-accent' : ''"
+          style="background: var(--surface); border: 1px solid var(--border-s)"
+        >
+          <!-- Scan beam (armed + connected) -->
+          <div
+            x-show="systemArmed && blinkConnected"
+            class="absolute inset-0 overflow-hidden pointer-events-none"
+            aria-hidden="true"
+          >
+            <div class="scan-strip"></div>
+          </div>
+
+          <div class="relative p-5 space-y-4">
+
+            <!-- Skeleton -->
+            <template x-if="statusLoading && systemArmed === null">
+              <div class="space-y-4 animate-fade-in">
+                <div class="flex items-center gap-3">
+                  <div class="skeleton h-3 w-20 rounded-full"></div>
+                  <div class="skeleton h-5 w-12 rounded-full ml-auto"></div>
+                </div>
+                <div class="skeleton h-14 w-full rounded-2xl"></div>
+              </div>
+            </template>
+
+            <template x-if="!statusLoading || systemArmed !== null">
+              <div class="space-y-4 animate-fade-in">
+
+                <!-- Status row -->
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <!-- Dot -->
+                    <div class="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
+                      <div
+                        x-show="systemArmed && blinkConnected"
+                        class="absolute inset-0 rounded-full animate-pulse-ring"
+                        style="background: var(--accent); opacity: 0.25"
+                      ></div>
+                      <div
+                        class="w-2.5 h-2.5 rounded-full t-smooth"
+                        :style="{
+                          background: systemArmed && blinkConnected ? 'var(--accent)'
+                                    : blinkConnected ? 'var(--sub)'
+                                    : 'var(--raised)',
+                          border: !blinkConnected ? '1px solid var(--border-s)' : 'none',
+                        }"
+                      ></div>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium uppercase tracking-widest t-sub font-mono">{{ t('dashboard.system_status') }}</p>
+                      <p class="text-base font-bold mt-0.5 t-text t-smooth" x-text="statusLabel"></p>
+                    </div>
+                  </div>
+
+                  <!-- LIVE badge or timestamp -->
+                  <template x-if="systemArmed && blinkConnected">
+                    <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-12" style="border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3)">
+                      <div class="w-1.5 h-1.5 rounded-full" style="background:var(--accent); animation:pulse 2s infinite"></div>
+                      <span class="text-[11px] font-bold font-mono tracking-widest t-accent">LIVE</span>
+                    </div>
+                  </template>
+                  <template x-if="!(systemArmed && blinkConnected)">
+                    <p class="text-xs font-mono t-sub" x-text="lastUpdated ?? ''"></p>
+                  </template>
+                </div>
+
+                <!-- Segmented toggle -->
+                <div
+                  class="relative flex rounded-2xl p-1 t-smooth"
+                  :style="{background: 'var(--raised)', opacity: blinkConnected ? 1 : 0.55}"
+                  role="group" aria-label="{{ t('dashboard.system_control') }}"
+                >
+                  <!-- Sliding pill -->
+                  <div
+                    class="pill-anim absolute top-1 bottom-1 w-[calc(50%-6px)] rounded-xl pointer-events-none"
+                    :style="{
+                      left: !systemArmed ? '4px' : 'calc(50% + 2px)',
+                      background: 'var(--surface)',
+                      boxShadow: '0 1px 4px var(--shadow)',
+                      border: '1px solid var(--border-s)',
+                    }"
+                  ></div>
+
+                  <!-- Disattivato -->
+                  <button
+                    @click="systemArmed && !toggleLoading && blinkConnected ? toggleArm() : null"
+                    :disabled="toggleLoading || !blinkConnected || !systemArmed"
+                    class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold t-smooth cursor-pointer disabled:cursor-default"
+                    :style="{ color: !systemArmed ? 'var(--text)' : 'var(--sub)' }"
+                    :aria-label="'{{ t('dashboard.disable_system_label') }}'"
+                  >
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 12.728M5.636 5.636 12 12m-6.364-6.364L12 12m0 0 6.364 6.364" />
+                    </svg>
+                    {{ t('dashboard.disable_system') }}
+                  </button>
+
+                  <!-- Attivo -->
+                  <button
+                    @click="!systemArmed && !toggleLoading && blinkConnected ? toggleArm() : null"
+                    :disabled="toggleLoading || !blinkConnected || systemArmed"
+                    class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold t-smooth cursor-pointer disabled:cursor-default"
+                    :style="{ color: systemArmed ? 'var(--accent)' : 'var(--sub)' }"
+                    :aria-label="'{{ t('dashboard.enable_system_label') }}'"
+                  >
+                    <template x-if="toggleLoading">
+                      <div class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+                    </template>
+                    <template x-if="!toggleLoading">
+                      <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                      </svg>
+                    </template>
+                    {{ t('dashboard.enable_system') }}
+                  </button>
+                </div>
+
+                <p x-show="!blinkConnected && !statusLoading" class="text-center text-xs t-sub">
+                  {{ t('dashboard.not_connected') }}
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+
+
+        <!-- ── VIDEO GALLERY ───────────────────────────────── -->
+        <div class="space-y-3">
+
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold t-text text-[16px]">{{ t('dashboard.recent_videos') }}</h2>
+            <button
+              @click="fetchVideos()"
+              :disabled="videosLoading"
+              class="flex items-center gap-1.5 text-sm font-medium t-accent cursor-pointer px-3 py-1.5 rounded-xl"
+              style="transition: opacity 0.15s, background-color 0.15s"
+              :style="{ opacity: videosLoading ? 0.4 : 1 }"
+              :aria-label="'{{ t('dashboard.refresh_videos_label') }}'"
+            >
+              <svg class="w-3.5 h-3.5" :class="videosLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              {{ t('dashboard.refresh_videos') }}
+            </button>
+          </div>
+
+          <!-- Loading skeletons -->
+          <template x-if="videosLoading && videos.length === 0">
+            <div class="space-y-5 animate-fade-in" aria-busy="true">
+
+              <!-- Group 1 skeleton -->
+              <div class="space-y-2.5">
+                <div class="flex items-center gap-2.5 px-0.5">
+                  <div class="skeleton h-2 w-10 rounded-full"></div>
+                  <div class="flex-1 h-px" style="background: var(--border-s)"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <template x-for="i in 4" :key="i">
+                    <div
+                      class="skeleton rounded-2xl relative overflow-hidden"
+                      style="aspect-ratio:16/9"
+                      :style="`animation-delay: ${(i - 1) * 75}ms`"
+                    >
+                      <!-- Play button ghost -->
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-9 h-9 rounded-full" style="background: rgba(255,255,255,0.07)"></div>
+                      </div>
+                      <!-- Bottom gradient + text ghosts -->
+                      <div class="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6" style="background: linear-gradient(to top, rgba(0,0,0,0.28), transparent)">
+                        <div class="flex items-end justify-between gap-1">
+                          <div class="h-2 rounded-full" :style="`width: ${44 + ((i - 1) % 3) * 14}px; background: rgba(255,255,255,0.13)`"></div>
+                          <div class="h-2 w-7 rounded-full" style="background: rgba(255,255,255,0.09)"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Group 2 skeleton (partial) -->
+              <div class="space-y-2.5">
+                <div class="flex items-center gap-2.5 px-0.5">
+                  <div class="skeleton h-2 w-14 rounded-full" style="animation-delay: 120ms"></div>
+                  <div class="flex-1 h-px" style="background: var(--border-s)"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <template x-for="j in 2" :key="j">
+                    <div
+                      class="skeleton rounded-2xl relative overflow-hidden"
+                      style="aspect-ratio:16/9"
+                      :style="`animation-delay: ${300 + (j - 1) * 75}ms`"
+                    >
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-9 h-9 rounded-full" style="background: rgba(255,255,255,0.07)"></div>
+                      </div>
+                      <div class="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6" style="background: linear-gradient(to top, rgba(0,0,0,0.28), transparent)">
+                        <div class="flex items-end justify-between gap-1">
+                          <div class="h-2 rounded-full" :style="`width: ${j === 1 ? 52 : 38}px; background: rgba(255,255,255,0.13)`"></div>
+                          <div class="h-2 w-7 rounded-full" style="background: rgba(255,255,255,0.09)"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+            </div>
+          </template>
+
+          <!-- Not yet fetched -->
+          <template x-if="!videosFetched && !videosLoading">
+            <div class="rounded-2xl p-10 flex flex-col items-center gap-3 text-center" style="border: 1px solid var(--border)">
+              <div class="w-12 h-12 rounded-2xl t-surface flex items-center justify-center" style="border: 1px solid var(--border-s)">
+                <svg class="w-6 h-6 t-sub" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm font-semibold t-text">{{ t('dashboard.no_videos_uploaded') }}</p>
+                <p class="text-xs t-sub mt-1">{{ t('dashboard.no_videos_description') }}</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- Empty after fetch -->
+          <template x-if="videosFetched && !videosLoading && videos.length === 0">
+            <div class="rounded-2xl p-10 flex flex-col items-center gap-3 text-center" style="border: 1px solid var(--border)">
+              <p class="text-sm t-sub">{{ t('dashboard.no_videos_found') }}</p>
+            </div>
+          </template>
+
+          <!-- Gallery grouped by date -->
+          <template x-if="videos.length > 0">
+            <div class="space-y-5">
+              <template x-for="group in videosByDate" :key="group.label">
+                <div class="space-y-2.5">
+
+                  <!-- Date header -->
+                  <div class="flex items-center gap-2.5 px-0.5">
+                    <h3 class="text-xs font-semibold uppercase tracking-widest whitespace-nowrap t-sub font-mono" x-text="group.label"></h3>
+                    <div class="flex-1 h-px" style="background: var(--border-s)"></div>
+                  </div>
+
+                  <!-- Cards grid -->
+                  <div class="grid grid-cols-2 gap-2.5">
+                    <template x-for="video in group.videos" :key="video.id">
+                      <button
+                        class="card-btn group relative rounded-2xl overflow-hidden text-left cursor-pointer focus:outline-none"
+                        style="aspect-ratio:16/9; background: var(--raised); border: 1px solid var(--border-s)"
+                        :style="{boxShadow: '0 2px 8px var(--shadow)'}"
+                        @click="playVideo(video)"
+                        :aria-label="`{{ t('video.play_video') }} ${video.camera_name} {{ t('video.at') }} ${video.time_fmt}`"
+                      >
+                        <!-- Thumbnail -->
+                        <video
+                          :src="video.url"
+                          preload="none"
+                          muted
+                          playsinline
+                          class="absolute inset-0 w-full h-full object-cover"
+                          style="filter: grayscale(80%) brightness(0.55) contrast(1.1)"
+                          x-init="
+                            const obs = new IntersectionObserver(entries => {
+                              if (entries[0].isIntersecting) { $el.preload = 'metadata'; obs.disconnect(); }
+                            }, { rootMargin: '120px' });
+                            obs.observe($el);
+                          "
+                          @loadedmetadata="$el.currentTime = 0.5"
+                          tabindex="-1"
+                        ></video>
+
+                        <!-- Gradient overlay -->
+                        <div class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent"></div>
+
+                        <!-- Play button -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                          <div
+                            class="w-9 h-9 rounded-full flex items-center justify-center t-smooth"
+                            style="background: rgba(0,0,0,0.38); backdrop-filter: blur(4px); transition: background 0.15s, transform 0.15s"
+                          >
+                            <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+
+                        <!-- Info overlay at bottom -->
+                        <div class="absolute inset-x-0 bottom-0 px-2.5 pb-2 flex items-end justify-between gap-1">
+                          <p class="text-[11px] font-semibold text-white/90 truncate leading-tight" x-text="video.camera_name"></p>
+                          <p class="text-[11px] font-mono tabular-nums flex-shrink-0 leading-tight" style="color: var(--accent)" x-text="video.time_fmt"></p>
+                        </div>
+                      </button>
+                    </template>
+                  </div>
+
+                </div>
+              </template>
+            </div>
+          </template>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</template>

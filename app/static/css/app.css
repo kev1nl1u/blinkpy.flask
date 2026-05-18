@@ -1,0 +1,186 @@
+/* ═══════════════════════════════════════════════
+   THEME VARIABLES
+   ═══════════════════════════════════════════════ */
+:root {
+  /* Light theme */
+  --bg:        #F1F5F9;
+  --surface:   #FFFFFF;
+  --raised:    #E8EEF5;
+  --accent:    #16A34A;
+  --accent-r:  22;
+  --accent-g:  163;
+  --accent-b:  74;
+  --text:      #0F172A;
+  --sub:       #64748B;
+  --border:    rgba(15,23,42,0.09);
+  --border-s:  rgba(15,23,42,0.14);
+  --danger:    #DC2626;
+  --warn:      #D97706;
+  --shadow:    rgba(15,23,42,0.10);
+  --skeleton1: #E2E8F0;
+  --skeleton2: #CBD5E1;
+  --modal-bg:  rgba(15,23,42,0.55);
+  --scan-col:  rgba(22,163,74,0.18);
+  --scan-peak: rgba(22,163,74,0.38);
+}
+
+html.dark {
+  --bg:        #09090E;
+  --surface:   #0F1520;
+  --raised:    #161E2C;
+  --accent:    #22C55E;
+  --accent-r:  34;
+  --accent-g:  197;
+  --accent-b:  94;
+  --text:      #E2EAF3;
+  --sub:       #7B9AB2;
+  --border:    rgba(255,255,255,0.07);
+  --border-s:  rgba(255,255,255,0.12);
+  --danger:    #F87171;
+  --warn:      #FBBF24;
+  --shadow:    rgba(0,0,0,0.45);
+  --skeleton1: #0F1520;
+  --skeleton2: #1C2840;
+  --modal-bg:  rgba(0,0,0,0.7);
+  --scan-col:  rgba(34,197,94,0.10);
+  --scan-peak: rgba(34,197,94,0.28);
+}
+
+/* ═══════════════════════════════════════════════
+   BASE
+   ═══════════════════════════════════════════════ */
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+
+html {
+  transition: background-color 0.22s ease;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', system-ui, sans-serif;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.safe-top    { padding-top:    max(env(safe-area-inset-top),    16px); }
+.safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 20px); }
+
+/* Scrollbar */
+::-webkit-scrollbar       { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-s); border-radius: 2px; }
+
+/* Inputs */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ═══════════════════════════════════════════════
+   SEMANTIC COLOUR UTILITIES
+   ═══════════════════════════════════════════════ */
+.t-bg       { background: var(--bg); }
+.t-surface  { background: var(--surface); }
+.t-raised   { background: var(--raised); }
+.t-text     { color: var(--text); }
+.t-sub      { color: var(--sub); }
+.t-accent   { color: var(--accent); }
+.t-danger   { color: var(--danger); }
+
+.b-border   { border-color: var(--border); }
+.b-border-s { border-color: var(--border-s); }
+.b-accent   { border-color: var(--accent); }
+.b-accent-25 { border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25); }
+.b-danger   { border-color: rgba(var(--danger),0.25); }
+
+.bg-accent-8  { background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08); }
+.bg-accent-12 { background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12); }
+.bg-accent-18 { background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18); }
+.ring-accent  { box-shadow: 0 0 0 1px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35); }
+
+.glow-accent { box-shadow: 0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18); }
+
+/* ═══════════════════════════════════════════════
+   COMPONENTS
+   ═══════════════════════════════════════════════ */
+.skeleton {
+  background: linear-gradient(
+    105deg,
+    var(--skeleton1) 0%,
+    var(--skeleton1) 30%,
+    var(--skeleton2) 50%,
+    var(--skeleton1) 70%,
+    var(--skeleton1) 100%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+.modal-bg {
+  background: var(--modal-bg);
+  backdrop-filter: blur(20px) saturate(0.8);
+  -webkit-backdrop-filter: blur(20px) saturate(0.8);
+}
+
+/* Scan beam */
+.scan-strip {
+  position: absolute; top: 0; bottom: 0; right: 0; width: 55%;
+  background: linear-gradient(90deg, transparent 0%, var(--scan-col) 30%, var(--scan-peak) 50%, var(--scan-col) 70%, transparent 100%);
+  animation: scanBeam 3s linear infinite;
+}
+
+/* Toggle pill spring */
+.pill-anim { transition: left 300ms cubic-bezier(0.34,1.56,0.64,1), background-color 0.2s ease, border-color 0.2s ease; }
+
+/* Card press */
+.card-btn {
+  transition: transform 160ms cubic-bezier(0.16,1,0.3,1), opacity 160ms ease, box-shadow 160ms ease;
+}
+.card-btn:active { transform: scale(0.963); opacity: 0.8; }
+
+/* Smooth transitions for theme-switching elements */
+.t-smooth {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* Input base */
+.field {
+  width: 100%;
+  background: var(--raised);
+  border: 1px solid var(--border-s);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-size: 15px;
+  font-family: 'Outfit', sans-serif;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.field::placeholder { color: var(--sub); opacity: 0.7; }
+.field:focus {
+  border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);
+  box-shadow: 0 0 0 3px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);
+}
+
+/* Primary button */
+.btn-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16,1,0.3,1);
+}
+html.dark .btn-primary { color: #0a1a0e; }
+.btn-primary:active    { transform: scale(0.975); opacity: 0.85; }
+.btn-primary:disabled  { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

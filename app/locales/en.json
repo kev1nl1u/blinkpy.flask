@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "Blink",
+    "subtitle": "Private security dashboard"
+  },
+  "auth": {
+    "login_with_google": "Sign in with Google",
+    "restricted_access": "Access restricted to authorized users only",
+    "connecting": "Connecting…"
+  },
+  "blink_setup": {
+    "connect_blink": "Connect Blink",
+    "enter_credentials": "Enter your Blink account credentials.",
+    "blink_email": "Blink Email",
+    "password": "Password",
+    "email_placeholder": "email@example.com",
+    "password_placeholder": "••••••••",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "login_to_blink": "Sign in to Blink",
+    "logging_in": "Signing in…",
+    "login_error": "Sign in failed. Check your credentials.",
+    "logout_google": "Sign out from Google account",
+    "credentials_error": "Sign in failed. Check your credentials."
+  },
+  "blink_2fa": {
+    "verify_identity": "Verify identity",
+    "otp_sent": "Blink sent an OTP code to your phone number.",
+    "otp_label": "OTP",
+    "otp_placeholder": "000000",
+    "verify_pin": "Verify PIN",
+    "verifying": "Verifying…",
+    "back_to_credentials": "← Back to credentials",
+    "pin_error": "Invalid PIN code. Please try again.",
+    "otp_error": "Error verifying OTP code."
+  },
+  "dashboard": {
+    "system_status": "System",
+    "armed": "Armed",
+    "disarmed": "Disarmed",
+    "connected": "Connected",
+    "not_connected": "Blink not connected — enter your credentials",
+    "last_updated": "Last updated",
+    "live": "LIVE",
+    "menu": "Menu",
+    "toggle_armed": "Toggle system",
+    "disable_system": "Disarmed",
+    "enable_system": "Armed",
+    "reset_server": "Reset server",
+    "logout": "Logout",
+    "toggle_theme": "Toggle light/dark theme",
+    "dark_mode": "Switch to light theme",
+    "light_mode": "Switch to dark theme",
+    "reset_modal_title": "Reset server",
+    "reset_warning": "This action is irreversible. The following will be deleted:",
+    "reset_blink_credentials": "Blink credentials",
+    "reset_active_sessions": "All active sessions",
+    "reset_downloaded_videos": "All downloaded videos",
+    "cancel": "Cancel",
+    "confirm_reset": "Confirm reset",
+    "resetting": "Resetting…",
+    "system_control": "System control",
+    "disable_system_label": "Disable system",
+    "enable_system_label": "Enable system",
+    "recent_videos": "Recent videos",
+    "refresh_videos": "Refresh",
+    "refresh_videos_label": "Refresh video list",
+    "no_videos_uploaded": "No videos uploaded",
+    "no_videos_description": "Use \"Refresh\" to sync with Blink",
+    "no_videos_found": "No videos found",
+    "no_videos_found_description": "No videos available for the selected period",
+    "status_armed": "Armed",
+    "status_disarmed": "Disarmed",
+    "status_disconnected": "Not connected",
+    "status_unknown": "Unknown",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "download": {
+    "updating_videos": "Updating videos",
+    "connecting_blink_module": "Connecting to Blink module…"
+  },
+  "video": {
+    "close_video": "Close video",
+    "play_video": "Play",
+    "at": "at"
+  },
+  "messages": {
+    "success": "Operation completed",
+    "error": "Error",
+    "info": "Information",
+    "error_connection": "Connection error",
+    "system_armed": "System armed",
+    "system_disarmed": "System disarmed",
+    "blink_login_ok": "Blink login successful",
+    "verify_ok": "Verification complete",
+    "videos_error": "Error loading videos",
+    "videos_downloaded": "video(s) downloaded",
+    "connection_retry": "Connection error. Try again.",
+    "session_expired": "Session expired — re-enter your Blink credentials."
+  },
+  "language": {
+    "select": "Language"
+  }
+}

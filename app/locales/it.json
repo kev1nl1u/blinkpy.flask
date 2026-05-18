@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "Blink",
+    "subtitle": "Dashboard sicurezza privata"
+  },
+  "auth": {
+    "login_with_google": "Accedi con Google",
+    "restricted_access": "Accesso riservato agli utenti autorizzati",
+    "connecting": "Connessione in corso…"
+  },
+  "blink_setup": {
+    "connect_blink": "Connetti Blink",
+    "enter_credentials": "Inserisci le credenziali del tuo account Blink.",
+    "blink_email": "Email Blink",
+    "password": "Password",
+    "email_placeholder": "email@esempio.com",
+    "password_placeholder": "••••••••",
+    "show_password": "Mostra password",
+    "hide_password": "Nascondi password",
+    "login_to_blink": "Accedi a Blink",
+    "logging_in": "Accesso in corso…",
+    "login_error": "Errore di accesso. Controlla le credenziali.",
+    "logout_google": "Esci dall'account Google",
+    "credentials_error": "Errore di accesso. Controlla le credenziali."
+  },
+  "blink_2fa": {
+    "verify_identity": "Verifica identità",
+    "otp_sent": "Blink ha inviato un codice OTP al tuo numero di telefono.",
+    "otp_label": "OTP",
+    "otp_placeholder": "000000",
+    "verify_pin": "Verifica PIN",
+    "verifying": "Verifica…",
+    "back_to_credentials": "← Torna all'inserimento credenziali",
+    "pin_error": "Codice PIN non valido. Riprova.",
+    "otp_error": "Errore nella verifica del codice OTP."
+  },
+  "dashboard": {
+    "system_status": "Sistema",
+    "armed": "Armato",
+    "disarmed": "Disarmato",
+    "connected": "Connesso",
+    "not_connected": "Blink non connesso — inserisci le credenziali",
+    "last_updated": "Ultimo aggiornamento",
+    "live": "LIVE",
+    "menu": "Menu",
+    "toggle_armed": "Attiva/Disattiva sistema",
+    "disable_system": "Disattivato",
+    "enable_system": "Attivo",
+    "reset_server": "Reset server",
+    "logout": "Logout",
+    "toggle_theme": "Passa al tema chiaro/scuro",
+    "dark_mode": "Passa al tema chiaro",
+    "light_mode": "Passa al tema scuro",
+    "reset_modal_title": "Reset server",
+    "reset_warning": "Questa azione è irreversibile. Verranno eliminati:",
+    "reset_blink_credentials": "Credenziali Blink",
+    "reset_active_sessions": "Tutte le sessioni attive",
+    "reset_downloaded_videos": "Tutti i video scaricati",
+    "cancel": "Annulla",
+    "confirm_reset": "Conferma reset",
+    "resetting": "Reset…",
+    "system_control": "Controllo sistema",
+    "disable_system_label": "Disattiva sistema",
+    "enable_system_label": "Attiva sistema",
+    "recent_videos": "Video recenti",
+    "refresh_videos": "Aggiorna",
+    "refresh_videos_label": "Aggiorna lista video",
+    "no_videos_uploaded": "Nessun video caricato",
+    "no_videos_description": "Usa \"Aggiorna\" per sincronizzare con Blink",
+    "no_videos_found": "Nessun video trovato",
+    "no_videos_found_description": "Nessun video disponibile per il periodo selezionato",
+    "status_armed": "Attivo",
+    "status_disarmed": "Disattivato",
+    "status_disconnected": "Non connesso",
+    "status_unknown": "Sconosciuto",
+    "today": "Oggi",
+    "yesterday": "Ieri"
+  },
+  "download": {
+    "updating_videos": "Aggiornamento video",
+    "connecting_blink_module": "Connessione al modulo Blink…"
+  },
+  "video": {
+    "close_video": "Chiudi video",
+    "play_video": "Riproduci",
+    "at": "alle"
+  },
+  "messages": {
+    "success": "Operazione completata",
+    "error": "Errore",
+    "info": "Informazione",
+    "error_connection": "Errore connessione",
+    "system_armed": "Sistema attivato",
+    "system_disarmed": "Sistema disattivato",
+    "blink_login_ok": "Accesso Blink completato",
+    "verify_ok": "Verifica completata",
+    "videos_error": "Errore caricamento video",
+    "videos_downloaded": "video scaricato/i",
+    "connection_retry": "Errore di connessione. Riprova.",
+    "session_expired": "Sessione scaduta — reinserisci le credenziali Blink."
+  },
+  "language": {
+    "select": "Lingua"
+  }
+}

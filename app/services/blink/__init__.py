@@ -1,0 +1,133 @@
+import asyncio
+import atexit
+import json
+import threading
+from pathlib import Path
+from aiohttp import ClientSession
+from blinkpy.blinkpy import Blink
+from blinkpy.auth import Auth, BlinkTwoFARequiredError
+
+
+class BlinkService:
+    """Manages Blink connection lifecycle for Flask app."""
+
+    def __init__(self):
+        self.session = None
+        self.blink = None
+        self.started = False
+        self.awaiting_2fa = False
+
+    async def login_with_credentials(self, email, password):
+        """Login with provided email and password."""
+        await self.stop()
+
+        self.session = ClientSession()
+        self.blink = Blink()
+
+        credentials = {"username": email, "password": password, "host": "prod"}
+        auth = Auth(credentials, session=self.session)
+        self.blink.auth = auth
+
+        try:
+            await self.blink.start()
+            await self.blink.refresh(force=True)
+            await self.blink.save("credentials.json")
+            Path("credentials.json").chmod(0o600)
+            self.started = True
+            self.awaiting_2fa = False
+        except BlinkTwoFARequiredError:
+            self.awaiting_2fa = True
+            raise
+
+        return self.blink
+
+    async def start(self):
+        """Initialize Blink connection from saved credentials.json."""
+        if self.started:
+            return self.blink
+
+        if not Path("credentials.json").exists():
+            raise ValueError("credentials.json not found")
+
+        try:
+            with open("credentials.json", 'r') as f:
+                creds = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            raise ValueError("Invalid or empty credentials.json")
+
+        self.session = ClientSession()
+        self.blink = Blink()
+
+        auth = Auth(creds, session=self.session)
+        self.blink.auth = auth
+
+        try:
+            await self.blink.start()
+            await self.blink.refresh(force=True)
+            self.started = True
+            self.awaiting_2fa = False
+        except BlinkTwoFARequiredError:
+            self.awaiting_2fa = True
+            raise
+
+        return self.blink
+
+    async def send_2fa_code(self, code):
+        """Complete login with 2FA code."""
+        if not self.awaiting_2fa or not self.blink:
+            raise ValueError("Not waiting for 2FA code")
+        try:
+            await self.blink.send_2fa_code(code)
+            await self.blink.refresh(force=True)
+            await self.blink.save("credentials.json")
+            Path("credentials.json").chmod(0o600)
+            self.started = True
+            self.awaiting_2fa = False
+        except Exception:
+            self.awaiting_2fa = True
+            raise
+
+    async def stop(self):
+        """Cleanup Blink connection and session."""
+        if self.session is not None:
+            try:
+                await self.session.close()
+            except Exception:
+                pass
+        self.session = None
+        self.blink = None
+        self.started = False
+        self.awaiting_2fa = False
+
+
+service = BlinkService()
+
+# Dedicated asyncio loop on a background thread so the aiohttp ClientSession
+# stays alive for the lifetime of the Flask process.
+_BG_LOOP = asyncio.new_event_loop()
+
+def _run_loop():
+    asyncio.set_event_loop(_BG_LOOP)
+    _BG_LOOP.run_forever()
+
+_LOOP_THREAD = threading.Thread(target=_run_loop, daemon=True)
+_LOOP_THREAD.start()
+
+
+def run_sync(coro, timeout=None):
+    """Submit a coroutine to the background loop and block until done."""
+    future = asyncio.run_coroutine_threadsafe(coro, _BG_LOOP)
+    return future.result(timeout)
+
+
+def _cleanup():
+    try:
+        run_sync(service.stop(), timeout=10)
+    except Exception:
+        pass
+    try:
+        _BG_LOOP.call_soon_threadsafe(_BG_LOOP.stop)
+    except Exception:
+        pass
+
+atexit.register(_cleanup)

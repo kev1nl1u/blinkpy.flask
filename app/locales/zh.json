@@ -1,0 +1,105 @@
+{
+  "app": {
+    "title": "Blink",
+    "subtitle": "私人安全仪表板"
+  },
+  "auth": {
+    "login_with_google": "使用 Google 登录",
+    "restricted_access": "仅限授权用户访问",
+    "connecting": "正在连接…"
+  },
+  "blink_setup": {
+    "connect_blink": "连接 Blink",
+    "enter_credentials": "输入您的 Blink 帐户凭据。",
+    "blink_email": "Blink 电子邮件",
+    "password": "密码",
+    "email_placeholder": "email@example.com",
+    "password_placeholder": "••••••••",
+    "show_password": "显示密码",
+    "hide_password": "隐藏密码",
+    "login_to_blink": "登录到 Blink",
+    "logging_in": "正在登录…",
+    "login_error": "登录失败。请检查您的凭据。",
+    "logout_google": "从 Google 帐户退出",
+    "credentials_error": "登录失败。请检查您的凭据。"
+  },
+  "blink_2fa": {
+    "verify_identity": "验证身份",
+    "otp_sent": "Blink 已向您的电话号码发送了一个 OTP 代码。",
+    "otp_label": "一次性密码",
+    "otp_placeholder": "000000",
+    "verify_pin": "验证 PIN",
+    "verifying": "正在验证…",
+    "back_to_credentials": "← 返回凭据输入",
+    "pin_error": "PIN 代码无效。请重试。",
+    "otp_error": "验证 OTP 代码出错。"
+  },
+  "dashboard": {
+    "system_status": "系统",
+    "armed": "已启用",
+    "disarmed": "已禁用",
+    "connected": "已连接",
+    "not_connected": "Blink 未连接 — 输入您的凭据",
+    "last_updated": "最后更新",
+    "live": "直播",
+    "menu": "菜单",
+    "toggle_armed": "切换系统",
+    "disable_system": "已禁用",
+    "enable_system": "已启用",
+    "reset_server": "重置服务器",
+    "logout": "退出",
+    "toggle_theme": "切换亮色/深色主题",
+    "dark_mode": "切换到亮色主题",
+    "light_mode": "切换到深色主题",
+    "reset_modal_title": "重置服务器",
+    "reset_warning": "此操作不可撤销。以下内容将被删除：",
+    "reset_blink_credentials": "Blink 凭据",
+    "reset_active_sessions": "所有活跃会话",
+    "reset_downloaded_videos": "所有已下载的视频",
+    "cancel": "取消",
+    "confirm_reset": "确认重置",
+    "resetting": "正在重置…",
+    "system_control": "系统控制",
+    "disable_system_label": "禁用系统",
+    "enable_system_label": "启用系统",
+    "recent_videos": "最近的视频",
+    "refresh_videos": "刷新",
+    "refresh_videos_label": "刷新视频列表",
+    "no_videos_uploaded": "未上传视频",
+    "no_videos_description": "使用\"刷新\"与 Blink 同步",
+    "no_videos_found": "未找到视频",
+    "no_videos_found_description": "所选时期没有可用的视频",
+    "status_armed": "已启用",
+    "status_disarmed": "已禁用",
+    "status_disconnected": "未连接",
+    "status_unknown": "未知",
+    "today": "今天",
+    "yesterday": "昨天"
+  },
+  "download": {
+    "updating_videos": "正在更新视频",
+    "connecting_blink_module": "正在连接到 Blink 模块…"
+  },
+  "video": {
+    "close_video": "关闭视频",
+    "play_video": "播放",
+    "at": "在"
+  },
+  "messages": {
+    "success": "操作完成",
+    "error": "错误",
+    "info": "信息",
+    "error_connection": "连接错误",
+    "system_armed": "系统已启用",
+    "system_disarmed": "系统已禁用",
+    "blink_login_ok": "Blink 登录成功",
+    "verify_ok": "验证完成",
+    "videos_error": "加载视频出错",
+    "videos_downloaded": "个视频已下载",
+    "connection_retry": "连接错误，请重试。",
+    "session_expired": "会话已过期 — 请重新输入 Blink 凭据。"
+  },
+  "language": {
+    "select": "语言"
+  }
+}
