@@ -28,7 +28,9 @@ def get_status():
         # Called only on page load / manual refresh — not on a poll loop.
         for mod in blink_service.blink.sync.values():
             try:
-                run_sync(mod.get_network_info())
+                def _net(mod=mod):
+                    return mod.get_network_info()
+                blink_service.submit(1, _net, timeout=60)
                 v = mod.arm
                 if v is not None:
                     armed = v
@@ -52,7 +54,9 @@ def blink_refresh():
     if not blink_service or not blink_service.started:
         return jsonify({"error": "Blink service not connected"}), 400
     try:
-        run_sync(blink_service.blink.refresh(force=True))
+        def _refresh():
+            return blink_service.blink.refresh(force=True)
+        blink_service.submit(1, _refresh, timeout=120)
         # Re-read arm state after refresh
         armed = None
         for mod in blink_service.blink.sync.values():
@@ -172,19 +176,18 @@ def submit_2fa():
 
 
 def _arm_modules(blink, value, module_name=None):
-    """Arm or disarm all (or one) sync module. Returns the intended value.
-    Actual confirmed state is read on next /api/status call via get_network_info()."""
-    modules = {}
+    """Arm or disarm sync module(s) via the priority queue (priority 0)."""
+    blink_service = current_app.extensions.get("blink_service")
     if module_name:
         if module_name not in blink.sync:
             raise KeyError(f"Sync module '{module_name}' not found")
         modules = {module_name: blink.sync[module_name]}
     else:
         modules = blink.sync
-
     for name, mod in modules.items():
-        run_sync(mod.async_arm(value))
-
+        def _arm(mod=mod):
+            return mod.async_arm(value)
+        blink_service.submit(0, _arm, timeout=180)
     return value
 
 
