@@ -682,6 +682,39 @@ def boost_clip():
     return jsonify({"ok": True, "key": key}), 200
 
 
+@bp.route('/blink/local/remote', methods=['GET'])
+@login_required
+def get_remote_clips():
+    """List clips present in the sync-module manifest (downloaded or not).
+
+    Refreshes the manifest via the queue (priority 1) then returns metadata.
+    Frontend merges these with local clips and marks the missing ones 'remote'.
+    """
+    blink_service = current_app.extensions.get("blink_service")
+    if not blink_service or not blink_service.started:
+        return jsonify({"error": "Blink service not connected"}), 400
+
+    blink = blink_service.blink
+    clips = []
+    for mod_name, mod in blink.sync.items():
+        try:
+            def _refresh(mod=mod):
+                return mod.update_local_storage_manifest()
+            blink_service.submit(1, _refresh, timeout=120)
+        except Exception:
+            continue
+        manifest = getattr(mod, "_local_storage", {}).get("manifest", [])
+        for item in manifest:
+            clips.append({
+                "id": str(item.id),
+                "module": mod_name,
+                "camera_name": item.name,
+                "created_at": item.created_at.isoformat()
+                if hasattr(item.created_at, "isoformat") else str(item.created_at),
+            })
+    return jsonify({"clips": clips}), 200
+
+
 @bp.route('/admin/reset', methods=['POST'])
 @login_required
 def admin_reset():
