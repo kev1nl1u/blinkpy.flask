@@ -6,6 +6,7 @@ from pathlib import Path
 from aiohttp import ClientSession
 from blinkpy.blinkpy import Blink
 from blinkpy.auth import Auth, BlinkTwoFARequiredError
+from app.services.blink.queue import BlinkQueue
 
 
 class BlinkService:
@@ -99,6 +100,16 @@ class BlinkService:
         self.started = False
         self.awaiting_2fa = False
 
+    def submit(self, priority, factory, key=None, timeout=None):
+        """Submit a Blink coroutine factory to the serialized priority queue."""
+        return queue.submit(priority, factory, key=key, timeout=timeout)
+
+    def submit_nowait(self, priority, factory, key=None):
+        return queue.submit_nowait(priority, factory, key=key)
+
+    def reprioritize(self, key, new_priority):
+        queue.reprioritize(key, new_priority)
+
 
 service = BlinkService()
 
@@ -112,6 +123,8 @@ def _run_loop():
 
 _LOOP_THREAD = threading.Thread(target=_run_loop, daemon=True)
 _LOOP_THREAD.start()
+
+queue = BlinkQueue(_BG_LOOP)
 
 
 def run_sync(coro, timeout=None):
