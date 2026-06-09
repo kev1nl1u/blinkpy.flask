@@ -22,6 +22,10 @@ function blinkApp() {
     videosLoading:  false,
     activeVideo:    null,
     dl: { active: false, done: 0, total: 0, current: null },
+    remoteFetching: false,
+    settings:       { scheduled_download: { enabled: false, time: '04:00', timezone: 'UTC' } },
+    settingsOpen:   false,
+    settingsSaving: false,
 
     // Forms
     creds:        { email: '', password: '' },
@@ -163,7 +167,7 @@ function blinkApp() {
         if (!res.ok) throw new Error(data.error ?? 'Errore');
         const seen = new Set();
         this.videos = (data.videos ?? [])
-          .map(v => this._mapVideo(v))
+          .map(v => ({ ...this._mapVideo(v), state: 'local' }))
           .filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
         this.videosFetched = true;
       } catch (err) {
@@ -174,7 +178,7 @@ function blinkApp() {
         this.videosLoading = false;
       }
       if (this.blinkConnected) {
-        this._downloadStream();
+        this.fetchRemoteClips();
       }
     },
 
@@ -219,6 +223,87 @@ function blinkApp() {
     },
 
     playVideo(video) { this.activeVideo = video; },
+
+    async fetchRemoteClips() {
+      if (this.remoteFetching) return;
+      this.remoteFetching = true;
+      try {
+        const res  = await fetch('/api/blink/local/remote');
+        const data = await res.json();
+        if (!res.ok) return;
+        const localIds = new Set(this.videos.map(v => v.id));
+        const remotes = (data.clips ?? [])
+          .filter(c => !localIds.has(c.id))
+          .map(c => ({ ...this._mapVideo(c), state: 'remote' }));
+        this.videos = [...this.videos, ...remotes]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      } catch (err) {
+        console.error('[remote]', err);
+      } finally {
+        this.remoteFetching = false;
+      }
+    },
+
+    async boostClip(video) {
+      if (video.state !== 'remote') { this.playVideo(video); return; }
+      video.state = 'downloading';
+      try {
+        const res = await fetch('/api/blink/local/clip/boost', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ module: video.module, clip_id: video.id }),
+        });
+        if (!res.ok) { video.state = 'remote'; this.showToast(window.APP_I18N.videos_error, 'error'); return; }
+        this._pollClip(video);
+      } catch (err) {
+        video.state = 'remote';
+        this.showToast(window.APP_I18N.videos_error, 'error');
+      }
+    },
+
+    _pollClip(video, attempts = 0) {
+      if (attempts > 60) { video.state = 'remote'; return; }
+      setTimeout(async () => {
+        try {
+          const res  = await fetch('/api/local-videos');
+          const data = await res.json();
+          const found = (data.videos ?? []).find(v => v.id === video.id);
+          if (found) {
+            Object.assign(video, this._mapVideo(found), { state: 'local' });
+          } else {
+            this._pollClip(video, attempts + 1);
+          }
+        } catch (err) {
+          this._pollClip(video, attempts + 1);
+        }
+      }, 3000);
+    },
+
+    async openSettings() {
+      this.settingsOpen = true;
+      this.showLogoMenu = false;
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) this.settings = await res.json();
+      } catch (err) { console.error('[settings]', err); }
+    },
+
+    async saveSettings() {
+      this.settingsSaving = true;
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.settings),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Errore');
+        this.settingsOpen = false;
+        this.showToast('OK', 'success');
+      } catch (err) {
+        this.showToast(err.message ?? 'Errore', 'error');
+      } finally {
+        this.settingsSaving = false;
+      }
+    },
 
     // ── API: Blink Login ──────────────────────────────────────────
     async submitCredentials() {
