@@ -159,6 +159,7 @@ function blinkApp() {
     // ── API: Videos ───────────────────────────────────────────────
     async fetchVideos() {
       if (this.videosLoading) return;
+      const inFlight = this.videos.filter(v => v.state === 'downloading');
       this.videosLoading = true;
       try {
         const res  = await fetch('/api/local-videos');
@@ -168,6 +169,10 @@ function blinkApp() {
         this.videos = (data.videos ?? [])
           .map(v => ({ ...this._mapVideo(v), state: 'local' }))
           .filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
+        const localIds = new Set(this.videos.map(v => v.id));
+        for (const v of inFlight) {
+          if (!localIds.has(v.id)) this.videos.push(v);
+        }
         this.videosFetched = true;
       } catch (err) {
         console.error('[videos]', err);
