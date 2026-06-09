@@ -50,6 +50,16 @@ def create_app():
         except Exception as exc:
             app.logger.exception("Failed to start Blink service: %s", exc)
 
+    from app.services.settings import Settings
+    from app.services.scheduler import DownloadScheduler
+    from app.services.blink.bulk import run_bulk_download
+
+    settings = Settings("settings.json")
+    app.extensions["settings"] = settings
+    scheduler = DownloadScheduler(job=lambda: run_bulk_download(blink_service))
+    scheduler.apply(settings.load())
+    app.extensions["scheduler"] = scheduler
+
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'

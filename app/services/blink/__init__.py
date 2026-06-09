@@ -110,6 +110,11 @@ class BlinkService:
     def reprioritize(self, key, new_priority):
         queue.reprioritize(key, new_priority)
 
+    def start_from_credentials(self):
+        """Synchronous wrapper used by the scheduler thread."""
+        from app.services.blink import run_sync
+        return run_sync(self.start())
+
 
 service = BlinkService()
 
