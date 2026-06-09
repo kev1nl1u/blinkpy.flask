@@ -625,6 +625,63 @@ def download_local_clips():
         return jsonify({"error": f"Failed to download clips: {str(e)}"}), 500
 
 
+@bp.route('/settings', methods=['GET'])
+@login_required
+def get_settings():
+    settings = current_app.extensions.get("settings")
+    return jsonify(settings.load()), 200
+
+
+@bp.route('/settings', methods=['POST'])
+@login_required
+def post_settings():
+    settings = current_app.extensions.get("settings")
+    scheduler = current_app.extensions.get("scheduler")
+    cfg = request.get_json(silent=True) or {}
+    try:
+        settings.save(cfg)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    scheduler.apply(cfg)
+    return jsonify({"ok": True, "settings": cfg}), 200
+
+
+@bp.route('/blink/local/clip/boost', methods=['POST'])
+@login_required
+def boost_clip():
+    """Boost (or enqueue) a single remote clip to the front of the download queue."""
+    blink_service = current_app.extensions.get("blink_service")
+    if not blink_service or not blink_service.started:
+        return jsonify({"error": "Blink service not connected"}), 400
+    data = request.get_json(silent=True) or {}
+    module_name = data.get("module")
+    clip_id = data.get("clip_id")
+    if not module_name or clip_id is None:
+        return jsonify({"error": "module and clip_id are required"}), 400
+
+    blink = blink_service.blink
+    if module_name not in blink.sync:
+        return jsonify({"error": f"Sync module '{module_name}' not found"}), 404
+
+    mod = blink.sync[module_name]
+    key = f"{module_name}:{clip_id}"
+
+    manifest = getattr(mod, "_local_storage", {}).get("manifest", [])
+    manifest_id = getattr(mod, "_local_storage", {}).get("last_manifest_id")
+    item = next((i for i in manifest if str(i.id) == str(clip_id)), None)
+    if item is None or not manifest_id:
+        return jsonify({"error": "clip not in current manifest"}), 404
+
+    from app.services.blink import downloads
+
+    def _dl():
+        return downloads.download_one_clip(blink, module_name, item, manifest_id)
+
+    blink_service.reprioritize(key, 2)
+    blink_service.submit_nowait(2, _dl, key=key)
+    return jsonify({"ok": True, "key": key}), 200
+
+
 @bp.route('/admin/reset', methods=['POST'])
 @login_required
 def admin_reset():
