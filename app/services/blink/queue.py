@@ -30,14 +30,17 @@ import asyncio
 import concurrent.futures
 import heapq
 import itertools
+import logging
 import threading
 from typing import Callable, Coroutine, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class _Entry:
     """Metadata for one queued job (factory + future)."""
 
-    __slots__ = ("priority", "seq", "key", "factory", "future", "stale")
+    __slots__ = ("priority", "seq", "key", "factory", "future")
 
     def __init__(
         self,
@@ -52,7 +55,6 @@ class _Entry:
         self.key = key
         self.factory = factory
         self.future = future
-        self.stale = False  # set True when reprioritized or deduped-out
 
 
 class BlinkQueue:
@@ -63,12 +65,17 @@ class BlinkQueue:
         self._counter = itertools.count()
         self._lock = threading.Lock()           # protects heap + registry
         self._heap: list[tuple[int, int, Optional[str]]] = []  # (pri, seq, key)
-        self._entries: dict[tuple, _Entry] = {} # (pri, seq, key) -> _Entry
+        self._entries: dict[tuple[int, int, Optional[str]], _Entry] = {} # (pri, seq, key) -> _Entry
         self._keyed: dict[str, _Entry] = {}     # non-None key -> _Entry (in-queue only)
         self._wakeup: asyncio.Event = asyncio.run_coroutine_threadsafe(
             self._make_event(), loop
         ).result(5)
-        asyncio.run_coroutine_threadsafe(self._worker(), loop)
+        self._worker_task = asyncio.run_coroutine_threadsafe(self._worker(), loop)
+        self._worker_task.add_done_callback(
+            lambda f: f.exception() and logger.error(
+                "BlinkQueue worker died", exc_info=f.exception()
+            )
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -137,7 +144,6 @@ class BlinkQueue:
                 return  # not queued — no-op
 
             old_entry = self._keyed[key]
-            old_entry.stale = True           # mark old heap entry as stale
             del self._entries[self._heap_key(old_entry)]
 
             seq = next(self._counter)
@@ -169,7 +175,7 @@ class BlinkQueue:
                     hk = heapq.heappop(self._heap)
                     entry = self._entries.pop(hk, None)
 
-                    if entry is None or entry.stale:
+                    if entry is None:
                         # Stale heap slot (reprioritized); skip.
                         continue
 
@@ -180,6 +186,10 @@ class BlinkQueue:
                 # Run outside the lock.
                 try:
                     result = await entry.factory()
-                    entry.future.set_result(result)
+                except asyncio.CancelledError:
+                    entry.future.cancel()
+                    raise
                 except Exception as exc:  # noqa: BLE001
                     entry.future.set_exception(exc)
+                else:
+                    entry.future.set_result(result)
