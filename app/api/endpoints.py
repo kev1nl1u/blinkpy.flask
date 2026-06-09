@@ -5,7 +5,7 @@ from datetime import datetime
 from app.services.blink import run_sync
 from pathlib import Path
 from app.api import bp
-from flask import jsonify, current_app, request, Response, stream_with_context
+from flask import jsonify, current_app, request
 from blinkpy.auth import BlinkTwoFARequiredError
 from blinkpy import api as blink_api
 from app.auth import login_required
@@ -432,104 +432,6 @@ def _read_clip_meta(mp4_path: Path) -> dict:
             pass
     # Fallback: file mtime (may be download time, not recording time)
     return {"created_at": datetime.fromtimestamp(mp4_path.stat().st_mtime).isoformat()}
-
-
-@bp.route('/blink/local/download/stream')
-@login_required
-def download_clips_stream():
-    """SSE endpoint: download new clips and stream progress events to the frontend."""
-    blink_service = current_app.extensions.get("blink_service")
-    if not blink_service or not blink_service.started:
-        return jsonify({"error": "Blink service not connected"}), 400
-
-    blink      = blink_service.blink
-    target_dir = DOWNLOAD_ROOT
-
-    def _emit(data: dict) -> str:
-        return f"data: {json.dumps(data)}\n\n"
-
-    def generate():
-        try:
-            for mod_name, mod in blink.sync.items():
-                # Refresh manifest from sync module
-                try:
-                    run_sync(mod.update_local_storage_manifest())
-                except Exception as exc:
-                    yield _emit({"type": "error", "message": str(exc)})
-                    return
-
-                last_manifest_id = mod._local_storage.get('last_manifest_id')
-                if not last_manifest_id:
-                    yield _emit({"type": "done", "downloaded": 0, "skipped": 0, "errors": 0})
-                    return
-
-                manifest = mod._local_storage.get('manifest', [])
-                all_items = sorted(manifest, key=lambda x: x.created_at, reverse=True)[:20]
-
-                # Split into existing (skip + fix meta) and new (download)
-                new_items, skipped = [], 0
-                for item in all_items:
-                    safe_name  = _safe_filename(item.name or str(item.id))
-                    dest       = target_dir / mod_name
-                    final_path = dest / f"{item.id}_{safe_name}.mp4"
-                    existing = _find_existing_clip(dest, item.id)
-                    if existing:
-                        skipped += 1
-                        if not existing.with_suffix('.json').exists():
-                            _write_clip_meta(existing, item)
-                    else:
-                        new_items.append((item, dest, final_path))
-
-                total = len(new_items)
-                yield _emit({"type": "start", "total": total, "skipped": skipped})
-
-                downloaded, errors = 0, 0
-                for idx, (item, dest, final_path) in enumerate(new_items):
-                    yield _emit({
-                        "type":    "progress",
-                        "done":    idx,
-                        "total":   total,
-                        "current": item.name,
-                        "id":      item.id,
-                    })
-                    try:
-                        dest.mkdir(parents=True, exist_ok=True)
-                        item.url(last_manifest_id)
-                        run_sync(item.prepare_download(blink), timeout=120)
-                        ok = run_sync(item.download_video(blink, str(final_path)), timeout=180)
-                        if ok:
-                            downloaded += 1
-                            _write_clip_meta(final_path, item)
-                            # Emit full clip metadata so frontend can add it immediately
-                            yield _emit({
-                                "type":        "clip",
-                                "id":          str(item.id),
-                                "camera_name": item.name,
-                                "created_at":  item.created_at.isoformat(),
-                                "url":         f"/videos/{mod_name}/{final_path.name}",
-                                "size":        final_path.stat().st_size,
-                            })
-                        else:
-                            errors += 1
-                    except Exception as exc:
-                        errors += 1
-                        if final_path.exists() and final_path.stat().st_size == 0:
-                            final_path.unlink(missing_ok=True)
-
-                yield _emit({"type": "done", "downloaded": downloaded, "skipped": skipped, "errors": errors})
-
-        except Exception as exc:
-            yield _emit({"type": "error", "message": str(exc)})
-
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={
-            "Cache-Control":    "no-cache",
-            "X-Accel-Buffering": "no",
-            "Connection":       "keep-alive",
-        },
-    )
 
 
 @bp.route('/blink/local/download', methods=['POST'])

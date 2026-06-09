@@ -21,7 +21,6 @@ function blinkApp() {
     videosFetched:  false,
     videosLoading:  false,
     activeVideo:    null,
-    dl: { active: false, done: 0, total: 0, current: null },
     remoteFetching: false,
     settings:       { scheduled_download: { enabled: false, time: '04:00', timezone: 'UTC' } },
     settingsOpen:   false,
@@ -191,35 +190,6 @@ function blinkApp() {
         time_fmt:       d ? d.toLocaleTimeString(locale, { hour:'2-digit', minute:'2-digit' }) : '—',
         date_key:       d ? d.toLocaleDateString(locale) : '',
       };
-    },
-
-    _downloadStream() {
-      this.dl = { active: true, done: 0, total: 0, current: null };
-      const es = new EventSource('/api/blink/local/download/stream');
-      es.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'start') {
-          this.dl.total = msg.total;
-          if (msg.total === 0) { this.dl.active = false; es.close(); }
-        } else if (msg.type === 'progress') {
-          this.dl.done    = msg.done;
-          this.dl.current = msg.current;
-        } else if (msg.type === 'clip') {
-          this.dl.done++;
-          const existing = this.videos.find(v => v.id === msg.id);
-          if (!existing) { this.videos = [this._mapVideo(msg), ...this.videos]; }
-        } else if (msg.type === 'done') {
-          this.dl.done   = this.dl.total;
-          this.dl.active = false;
-          if (msg.downloaded > 0) this.showToast(`${msg.downloaded} ${window.APP_I18N.videos_downloaded}`, 'success');
-          es.close();
-        } else if (msg.type === 'error') {
-          console.warn('[sse]', msg.message);
-          this.dl.active = false;
-          es.close();
-        }
-      };
-      es.onerror = () => { this.dl.active = false; es.close(); };
     },
 
     playVideo(video) { this.activeVideo = video; },
