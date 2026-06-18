@@ -138,6 +138,37 @@ stateDiagram-v2
 | Duplicate clip | `key = "module:clip_id"` → enqueued once (tap + bulk dedup). |
 | Server restart | Queue is in-memory; interrupted downloads resume next scheduler/tap. |
 
+## Motion-driven downloads (armed-gated manifest poll)
+
+Goal: download new clips near-real-time instead of only on the daily schedule.
+
+Blink offers **no push/webhook** for new recordings. The official app receives FCM
+push, but blinkpy exposes no client for it — `notification_flags` only configures
+which notifications the *cloud* sends to the *mobile app*. Everything in blinkpy is
+poll-based.
+
+This deployment records to **local storage** (sync-module USB), not cloud, so the
+cheap cloud signals (`/videos/count`, `/media/changed`) never move. Detecting a new
+local clip requires building the local-storage **manifest** (`manifest/request` →
+`wait_for_command` → GET), which wakes the sync module.
+
+We also empirically ruled out the cheap `homescreen` endpoint as a sentinel: a motion
+clip recorded at `08:45:18Z` produced **no** homescreen field change — `updated_at`
+only bumps on config/arm events, and `last_hb` is a 60 s heartbeat. So the manifest
+build is the only reliable signal.
+
+To bound that cost, `run_motion_poll` (`app/services/blink/motion.py`) runs on an
+interval (`motion_download.interval_minutes`, default 2) and per sync module:
+
+1. cheap armed check (one `get_network_info` request, priority 1);
+2. **disarmed → skip** (no recordings possible — this is the whole cost saving);
+3. armed → build the manifest, enqueue clips newer than an in-memory high-water mark
+   at boosted priority (2), keyed `module:clip_id` (dedups with tap-to-boost).
+
+The first poll after a restart seeds the mark without re-downloading history (that
+backlog is the daily bulk download's job). The interval job is reconfigurable at
+runtime via the same settings POST + `DownloadScheduler.apply`.
+
 ## Out of scope (YAGNI)
 
 Tee streaming (boost replaces it) · cancelling in-flight downloads (device work isn't

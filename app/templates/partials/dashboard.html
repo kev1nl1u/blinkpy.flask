@@ -155,6 +155,20 @@
             <input type="text" x-model="settings.scheduled_download.timezone"
                    class="rounded-xl px-3 py-2 w-40" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
           </label>
+
+          <div style="border-top: 1px solid var(--border-s)"></div>
+          <p class="font-bold t-text">Download da movimento</p>
+          <p class="text-xs" style="color: var(--text-muted)">Scarica i clip nuovi quando il sistema è armato.</p>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Attivo</span>
+            <input type="checkbox" x-model="settings.motion_download.enabled">
+          </label>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Ogni (minuti)</span>
+            <input type="number" min="1" max="60" x-model.number="settings.motion_download.interval_minutes"
+                   class="rounded-xl px-3 py-2 w-24" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+          </label>
+
           <div class="flex gap-3 pt-1">
             <button @click="settingsOpen = false" :disabled="settingsSaving"
                     class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">

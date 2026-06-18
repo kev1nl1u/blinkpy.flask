@@ -236,7 +236,12 @@ def get_settings():
 def post_settings():
     settings = current_app.extensions.get("settings")
     scheduler = current_app.extensions.get("scheduler")
-    cfg = request.get_json(silent=True) or {}
+    incoming = request.get_json(silent=True) or {}
+    # Merge over current settings so clients can post a single section.
+    cfg = settings.load()
+    for section in ("scheduled_download", "motion_download"):
+        if isinstance(incoming.get(section), dict):
+            cfg[section].update(incoming[section])
     try:
         settings.save(cfg)
     except ValueError as e:

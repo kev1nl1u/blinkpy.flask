@@ -10,7 +10,11 @@ DEFAULTS = {
         "enabled": False,
         "time": "04:00",
         "timezone": "UTC",
-    }
+    },
+    "motion_download": {
+        "enabled": False,
+        "interval_minutes": 2,
+    },
 }
 
 
@@ -32,20 +36,36 @@ class Settings:
         merged["scheduled_download"].update(
             {k: sd[k] for k in ("enabled", "time", "timezone") if k in sd}
         )
+        md = data.get("motion_download", {})
+        merged["motion_download"].update(
+            {k: md[k] for k in ("enabled", "interval_minutes") if k in md}
+        )
         return merged
 
     def validate(self, cfg):
-        sd = cfg.get("scheduled_download", {})
-        if not isinstance(sd.get("enabled"), bool):
-            raise ValueError("enabled must be a boolean")
-        time = sd.get("time", "")
-        if not _TIME_RE.match(str(time)):
-            raise ValueError(f"invalid time: {time!r} (expected HH:MM)")
-        tz = sd.get("timezone", "")
-        try:
-            ZoneInfo(str(tz))
-        except (ZoneInfoNotFoundError, ValueError):
-            raise ValueError(f"invalid timezone: {tz!r}")
+        sd = cfg.get("scheduled_download")
+        if sd is not None:
+            if not isinstance(sd.get("enabled"), bool):
+                raise ValueError("enabled must be a boolean")
+            time = sd.get("time", "")
+            if not _TIME_RE.match(str(time)):
+                raise ValueError(f"invalid time: {time!r} (expected HH:MM)")
+            tz = sd.get("timezone", "")
+            try:
+                ZoneInfo(str(tz))
+            except (ZoneInfoNotFoundError, ValueError):
+                raise ValueError(f"invalid timezone: {tz!r}")
+
+        md = cfg.get("motion_download")
+        if md is not None:
+            if not isinstance(md.get("enabled"), bool):
+                raise ValueError("motion_download.enabled must be a boolean")
+            interval = md.get("interval_minutes")
+            if not isinstance(interval, int) or isinstance(interval, bool) \
+                    or not (1 <= interval <= 60):
+                raise ValueError(
+                    f"invalid interval_minutes: {interval!r} (expected int 1-60)"
+                )
 
     def save(self, cfg):
         self.validate(cfg)

@@ -27,3 +27,28 @@ def test_reschedule_replaces_job():
     fields = {f.name: str(f) for f in job.trigger.fields}
     assert fields["hour"] == "5"
     sched.shutdown()
+
+
+def test_motion_disabled_means_no_motion_job():
+    sched = DownloadScheduler(job=lambda: None, motion_job=lambda: None)
+    sched.apply({"motion_download": {"enabled": False, "interval_minutes": 2}})
+    assert sched.get_motion_job() is None
+    sched.shutdown()
+
+
+def test_motion_enabled_creates_interval_job():
+    sched = DownloadScheduler(job=lambda: None, motion_job=lambda: None)
+    sched.apply({"motion_download": {"enabled": True, "interval_minutes": 3}})
+    job = sched.get_motion_job()
+    assert job is not None
+    assert int(job.trigger.interval.total_seconds()) == 180
+    sched.shutdown()
+
+
+def test_motion_reschedule_changes_interval():
+    sched = DownloadScheduler(job=lambda: None, motion_job=lambda: None)
+    sched.apply({"motion_download": {"enabled": True, "interval_minutes": 2}})
+    sched.apply({"motion_download": {"enabled": True, "interval_minutes": 5}})
+    job = sched.get_motion_job()
+    assert int(job.trigger.interval.total_seconds()) == 300
+    sched.shutdown()

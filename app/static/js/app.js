@@ -22,7 +22,7 @@ function blinkApp() {
     videosLoading:  false,
     activeVideo:    null,
     remoteFetching: false,
-    settings:       { scheduled_download: { enabled: false, time: '04:00', timezone: 'UTC' } },
+    settings:       { scheduled_download: { enabled: false, time: '04:00', timezone: 'UTC' }, motion_download: { enabled: false, interval_minutes: 2 } },
     settingsOpen:   false,
     settingsSaving: false,
 
