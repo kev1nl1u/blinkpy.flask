@@ -28,7 +28,7 @@ def get_status():
             try:
                 def _net(mod=mod):
                     return mod.get_network_info()
-                blink_service.submit(1, _net, timeout=60)
+                blink_service.submit(1, _net, timeout=60, label="status")
                 v = mod.arm
                 if v is not None:
                     armed = v
@@ -54,7 +54,7 @@ def blink_refresh():
     try:
         def _refresh():
             return blink_service.blink.refresh(force=True)
-        blink_service.submit(1, _refresh, timeout=120)
+        blink_service.submit(1, _refresh, timeout=120, label="refresh")
         # Re-read arm state after refresh
         armed = None
         for mod in blink_service.blink.sync.values():
@@ -182,10 +182,11 @@ def _arm_modules(blink, value, module_name=None):
         modules = {module_name: blink.sync[module_name]}
     else:
         modules = blink.sync
+    label = "arm" if value else "disarm"
     for name, mod in modules.items():
         def _arm(mod=mod):
             return mod.async_arm(value)
-        blink_service.submit(0, _arm, timeout=180)
+        blink_service.submit(0, _arm, timeout=180, label=label)
     return value
 
 
@@ -250,6 +251,31 @@ def post_settings():
     return jsonify({"ok": True, "settings": cfg}), 200
 
 
+@bp.route('/queue', methods=['GET'])
+@login_required
+def get_queue():
+    """Return the Blink command queue (running + pending) and scheduled jobs.
+
+    Lets the UI show what the serialized worker is doing and what background
+    (scheduled) actions are due next. Read-only; does not touch the Blink API.
+    """
+    blink_service = current_app.extensions.get("blink_service")
+    scheduler     = current_app.extensions.get("scheduler")
+
+    if blink_service:
+        snap = blink_service.queue_snapshot()
+    else:
+        snap = {"running": None, "pending": []}
+
+    scheduled = scheduler.jobs_info() if scheduler else {}
+
+    return jsonify({
+        "running":   snap["running"],
+        "pending":   snap["pending"],
+        "scheduled": scheduled,
+    }), 200
+
+
 @bp.route('/blink/local/clip/boost', methods=['POST'])
 @login_required
 def boost_clip():
@@ -282,7 +308,7 @@ def boost_clip():
         return downloads.download_one_clip(blink, module_name, item, manifest_id)
 
     blink_service.reprioritize(key, 2)
-    blink_service.submit_nowait(2, _dl, key=key)
+    blink_service.submit_nowait(2, _dl, key=key, label="download")
     return jsonify({"ok": True, "key": key}), 200
 
 
@@ -304,7 +330,7 @@ def get_remote_clips():
         try:
             def _refresh(mod=mod):
                 return mod.update_local_storage_manifest()
-            blink_service.submit(1, _refresh, timeout=120)
+            blink_service.submit(1, _refresh, timeout=120, label="manifest")
         except Exception:
             continue
         manifest = getattr(mod, "_local_storage", {}).get("manifest", [])

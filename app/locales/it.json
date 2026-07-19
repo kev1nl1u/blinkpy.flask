@@ -99,6 +99,25 @@
     "connection_retry": "Errore di connessione. Riprova.",
     "session_expired": "Sessione scaduta — reinserisci le credenziali Blink."
   },
+  "queue": {
+    "title": "Coda comandi",
+    "running": "In esecuzione",
+    "idle": "Nessuna operazione in corso",
+    "pending": "In attesa",
+    "empty": "Coda vuota",
+    "scheduled": "Azioni pianificate",
+    "bulk": "Download giornaliero",
+    "motion": "Download da movimento",
+    "off": "Off",
+    "close": "Chiudi",
+    "op_arm": "Attivazione sistema",
+    "op_disarm": "Disattivazione sistema",
+    "op_status": "Lettura stato",
+    "op_refresh": "Aggiornamento Blink",
+    "op_manifest": "Sincronizzazione clip",
+    "op_download": "Download clip",
+    "op_task": "Operazione"
+  },
   "language": {
     "select": "Lingua"
   }

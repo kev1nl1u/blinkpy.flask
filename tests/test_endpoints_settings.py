@@ -42,7 +42,7 @@ def test_boost_reprioritizes_and_enqueues(app, logged_in_client):
         started = True
         blink = type("B", (), {"sync": {"mod": FakeMod()}})()
         def reprioritize(self, key, prio): calls["reprio"].append((key, prio))
-        def submit_nowait(self, prio, factory, key=None): calls["submit"].append((prio, key))
+        def submit_nowait(self, prio, factory, key=None, label=None): calls["submit"].append((prio, key))
     app.extensions["blink_service"] = FakeService()
     res = logged_in_client.post("/api/blink/local/clip/boost", json={"module": "mod", "clip_id": "c1"})
     assert res.status_code == 200

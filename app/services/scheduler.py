@@ -49,5 +49,17 @@ class DownloadScheduler:
     def get_motion_job(self):
         return self._scheduler.get_job(_MOTION_JOB_ID)
 
+    def jobs_info(self):
+        """Return next-run info for both scheduled jobs (for introspection)."""
+        def _next(job):
+            nrt = getattr(job, "next_run_time", None) if job else None
+            return nrt.isoformat() if nrt else None
+        bulk = self._scheduler.get_job(_JOB_ID)
+        motion = self._scheduler.get_job(_MOTION_JOB_ID)
+        return {
+            "bulk":   {"enabled": bulk is not None,   "next_run": _next(bulk)},
+            "motion": {"enabled": motion is not None, "next_run": _next(motion)},
+        }
+
     def shutdown(self):
         self._scheduler.shutdown(wait=False)

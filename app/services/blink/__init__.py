@@ -104,15 +104,19 @@ class BlinkService:
         self.started = False
         self.awaiting_2fa = False
 
-    def submit(self, priority, factory, key=None, timeout=None):
+    def submit(self, priority, factory, key=None, timeout=None, label=None):
         """Submit a Blink coroutine factory to the serialized priority queue."""
-        return queue.submit(priority, factory, key=key, timeout=timeout)
+        return queue.submit(priority, factory, key=key, timeout=timeout, label=label)
 
-    def submit_nowait(self, priority, factory, key=None):
-        return queue.submit_nowait(priority, factory, key=key)
+    def submit_nowait(self, priority, factory, key=None, label=None):
+        return queue.submit_nowait(priority, factory, key=key, label=label)
 
     def reprioritize(self, key, new_priority):
         queue.reprioritize(key, new_priority)
+
+    def queue_snapshot(self):
+        """Return the serialized priority queue's running/pending state."""
+        return queue.snapshot()
 
     def start_from_credentials(self):
         """Synchronous wrapper used by the scheduler thread."""

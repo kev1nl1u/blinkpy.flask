@@ -43,6 +43,23 @@
               Download schedulato
             </button>
             <button
+              @click="openQueue()"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+              style="transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+              {{ t('queue.title') }}
+              <span
+                x-show="(queue.pending?.length || 0) + (queue.running ? 1 : 0) > 0"
+                class="ml-auto text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                style="background: var(--accent); color: #fff"
+                x-text="(queue.pending?.length || 0) + (queue.running ? 1 : 0)"
+              ></span>
+            </button>
+            <button
               @click="showLogoMenu = false; showResetModal = true"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth"
               style="color: var(--danger); transition: background-color 0.15s"
@@ -171,16 +188,89 @@
 
           <div class="flex gap-3 pt-1">
             <button @click="settingsOpen = false" :disabled="settingsSaving"
-                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer t-sub" style="background: transparent; border: none">
               {{ t('dashboard.cancel') }}
             </button>
             <button @click="saveSettings()" :disabled="settingsSaving"
                     class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2"
-                    style="background: var(--accent); color: #fff; border: none" :style="settingsSaving ? 'opacity:0.6' : ''">
-              <div x-show="settingsSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.3); border-top-color:#fff"></div>
+                    :class="{ 'opacity-60': settingsSaving }"
+                    style="background: var(--raised); border: 1px solid var(--border-s)">
+              <div x-show="settingsSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
               <span x-text="settingsSaving ? '...' : 'Salva'"></span>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Command queue modal -->
+      <div
+        x-show="queueOpen" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @keydown.escape.window="closeQueue()"
+        role="dialog" aria-modal="true"
+      >
+        <div class="w-full max-w-sm rounded-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+             style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
+          <p class="font-bold t-text">{{ t('queue.title') }}</p>
+
+          <!-- Running -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">{{ t('queue.running') }}</p>
+            <template x-if="queue.running">
+              <div class="flex items-center gap-3 rounded-xl px-3 py-2.5" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <div class="w-4 h-4 rounded-full animate-spin flex-shrink-0" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+                <span class="text-sm t-text truncate" x-text="queueLabel(queue.running)"></span>
+              </div>
+            </template>
+            <template x-if="!queue.running">
+              <p class="text-sm t-sub px-1">{{ t('queue.idle') }}</p>
+            </template>
+          </div>
+
+          <!-- Pending -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">
+              {{ t('queue.pending') }}
+              <span x-show="queue.pending?.length" class="t-sub" x-text="`(${queue.pending.length})`"></span>
+            </p>
+            <template x-if="queue.pending?.length">
+              <div class="space-y-1.5">
+                <template x-for="(job, idx) in queue.pending" :key="job.seq">
+                  <div class="flex items-center gap-3 rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                    <span class="text-[11px] font-mono t-sub w-5 flex-shrink-0" x-text="idx + 1"></span>
+                    <span class="text-sm t-text truncate" x-text="queueLabel(job)"></span>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!queue.pending?.length">
+              <p class="text-sm t-sub px-1">{{ t('queue.empty') }}</p>
+            </template>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-s)"></div>
+
+          <!-- Scheduled background actions -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">{{ t('queue.scheduled') }}</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <span class="text-sm t-text">{{ t('queue.bulk') }}</span>
+                <span class="text-xs font-mono t-sub"
+                      x-text="queue.scheduled?.bulk?.enabled ? fmtNextRun(queue.scheduled.bulk.next_run) : '{{ t('queue.off') }}'"></span>
+              </div>
+              <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <span class="text-sm t-text">{{ t('queue.motion') }}</span>
+                <span class="text-xs font-mono t-sub"
+                      x-text="queue.scheduled?.motion?.enabled ? fmtNextRun(queue.scheduled.motion.next_run) : '{{ t('queue.off') }}'"></span>
+              </div>
+            </div>
+          </div>
+
+          <button @click="closeQueue()"
+                  class="w-full py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">
+            {{ t('queue.close') }}
+          </button>
         </div>
       </div>
 

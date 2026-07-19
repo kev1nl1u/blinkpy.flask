@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class _Entry:
     """Metadata for one queued job (factory + future)."""
 
-    __slots__ = ("priority", "seq", "key", "factory", "future")
+    __slots__ = ("priority", "seq", "key", "factory", "future", "label")
 
     def __init__(
         self,
@@ -49,12 +49,14 @@ class _Entry:
         key: Optional[str],
         factory: Callable[[], Coroutine],
         future: concurrent.futures.Future,
+        label: Optional[str] = None,
     ) -> None:
         self.priority = priority
         self.seq = seq
         self.key = key
         self.factory = factory
         self.future = future
+        self.label = label
 
 
 class BlinkQueue:
@@ -67,6 +69,7 @@ class BlinkQueue:
         self._heap: list[tuple[int, int, Optional[str]]] = []  # (pri, seq, key)
         self._entries: dict[tuple[int, int, Optional[str]], _Entry] = {} # (pri, seq, key) -> _Entry
         self._keyed: dict[str, _Entry] = {}     # non-None key -> _Entry (in-queue only)
+        self._running: Optional[_Entry] = None  # job currently executing in worker
         self._wakeup: asyncio.Event = asyncio.run_coroutine_threadsafe(
             self._make_event(), loop
         ).result(5)
@@ -96,6 +99,7 @@ class BlinkQueue:
         priority: int,
         factory: Callable[[], Coroutine],
         key: Optional[str] = None,
+        label: Optional[str] = None,
     ) -> concurrent.futures.Future:
         """
         Enqueue a job and return a Future for its result.
@@ -103,6 +107,9 @@ class BlinkQueue:
         Thread-safe; returns immediately.  If *key* is not None and an entry
         with that key is already queued, the existing Future is returned
         and the new factory is discarded (dedup).
+
+        *label* is a short token describing the operation (e.g. "arm",
+        "download") used only for queue introspection via ``snapshot``.
         """
         with self._lock:
             # Synchronous dedup: if the key is already queued, return that future.
@@ -111,7 +118,7 @@ class BlinkQueue:
 
             seq = next(self._counter)
             fut: concurrent.futures.Future = concurrent.futures.Future()
-            entry = _Entry(priority, seq, key, factory, fut)
+            entry = _Entry(priority, seq, key, factory, fut, label)
             hk = self._heap_key(entry)
             heapq.heappush(self._heap, hk)
             self._entries[hk] = entry
@@ -128,9 +135,10 @@ class BlinkQueue:
         factory: Callable[[], Coroutine],
         key: Optional[str] = None,
         timeout: Optional[float] = None,
+        label: Optional[str] = None,
     ) -> Any:
         """Blocking version of submit_nowait. Waits for the result."""
-        return self.submit_nowait(priority, factory, key).result(timeout)
+        return self.submit_nowait(priority, factory, key, label).result(timeout)
 
     def reprioritize(self, key: str, new_priority: int) -> None:
         """
@@ -148,7 +156,8 @@ class BlinkQueue:
 
             seq = next(self._counter)
             new_entry = _Entry(
-                new_priority, seq, key, old_entry.factory, old_entry.future
+                new_priority, seq, key, old_entry.factory, old_entry.future,
+                old_entry.label,
             )
             hk = self._heap_key(new_entry)
             heapq.heappush(self._heap, hk)
@@ -156,6 +165,33 @@ class BlinkQueue:
             self._keyed[key] = new_entry
 
         self._loop.call_soon_threadsafe(self._wakeup.set)
+
+    # ------------------------------------------------------------------
+    # Introspection
+    # ------------------------------------------------------------------
+
+    def _describe(self, entry: _Entry) -> dict:
+        return {
+            "priority": entry.priority,
+            "seq": entry.seq,
+            "key": entry.key,
+            "label": entry.label,
+        }
+
+    def snapshot(self) -> dict:
+        """Return the current worker/queue state (thread-safe).
+
+        ``running`` is the job executing now (or None); ``pending`` is the
+        queued jobs in the order they will run.
+        """
+        with self._lock:
+            running = self._describe(self._running) if self._running else None
+            pending = [
+                self._describe(self._entries[hk])
+                for hk in sorted(self._heap)
+                if hk in self._entries
+            ]
+        return {"running": running, "pending": pending}
 
     # ------------------------------------------------------------------
     # Worker (runs on the background event loop)
@@ -183,6 +219,8 @@ class BlinkQueue:
                     if entry.key is not None:
                         self._keyed.pop(entry.key, None)
 
+                    self._running = entry
+
                 # Run outside the lock.
                 try:
                     result = await entry.factory()
@@ -193,3 +231,6 @@ class BlinkQueue:
                     entry.future.set_exception(exc)
                 else:
                     entry.future.set_result(result)
+                finally:
+                    with self._lock:
+                        self._running = None

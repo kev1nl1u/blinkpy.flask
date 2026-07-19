@@ -16,9 +16,9 @@ def test_bulk_enqueues_manifest_then_clips(monkeypatch):
     class FakeService:
         started = True
         blink = fake_blink
-        def submit(self, priority, factory, key=None, timeout=None):
+        def submit(self, priority, factory, key=None, timeout=None, label=None):
             submitted.append((priority, key)); return None
-        def submit_nowait(self, priority, factory, key=None):
+        def submit_nowait(self, priority, factory, key=None, label=None):
             submitted.append((priority, key)); return None
 
     bulk.run_bulk_download(FakeService())

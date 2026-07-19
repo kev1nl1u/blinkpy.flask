@@ -6,7 +6,7 @@ def test_arm_submits_priority_zero(app, logged_in_client):
     class FakeService:
         started = True
         blink = type("B", (), {"sync": {"mod": FakeMod()}})()
-        def submit(self, priority, factory, key=None, timeout=None):
+        def submit(self, priority, factory, key=None, timeout=None, label=None):
             calls.append(priority)
             return True
     app.extensions["blink_service"] = FakeService()
@@ -26,7 +26,7 @@ def test_status_submits_priority_one(app, logged_in_client):
         started = True
         awaiting_2fa = False
         blink = type("B", (), {"sync": {"mod": FakeMod()}})()
-        def submit(self, priority, factory, key=None, timeout=None):
+        def submit(self, priority, factory, key=None, timeout=None, label=None):
             calls.append(priority)
             return None
     app.extensions["blink_service"] = FakeService()

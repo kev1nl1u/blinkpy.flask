@@ -33,11 +33,11 @@ class FakeService:
         self.submitted = []
         self.enqueued = []
 
-    def submit(self, priority, factory, key=None, timeout=None):
+    def submit(self, priority, factory, key=None, timeout=None, label=None):
         self.submitted.append((priority, key))
         return None
 
-    def submit_nowait(self, priority, factory, key=None):
+    def submit_nowait(self, priority, factory, key=None, label=None):
         self.enqueued.append((priority, key))
         return None
 

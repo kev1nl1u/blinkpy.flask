@@ -16,7 +16,7 @@ def test_remote_clips_lists_manifest(app, logged_in_client):
     class FakeService:
         started = True
         blink = type("B", (), {"sync": {"mod": FakeMod()}})()
-        def submit(self, priority, factory, key=None, timeout=None):
+        def submit(self, priority, factory, key=None, timeout=None, label=None):
             assert priority == 1  # manifest refresh at priority 1
             return True
     app.extensions["blink_service"] = FakeService()

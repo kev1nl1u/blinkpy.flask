@@ -36,7 +36,7 @@ def run_motion_poll(service):
         def _net(mod=mod):
             return mod.get_network_info()
         try:
-            service.submit(1, _net, timeout=60)
+            service.submit(1, _net, timeout=60, label="status")
         except Exception:
             continue
         if not mod.arm:
@@ -45,7 +45,7 @@ def run_motion_poll(service):
         def _refresh(mod=mod):
             return mod.update_local_storage_manifest()
         try:
-            service.submit(1, _refresh, timeout=300)
+            service.submit(1, _refresh, timeout=300, label="manifest")
         except Exception:
             continue
 
@@ -69,7 +69,7 @@ def run_motion_poll(service):
             def _dl(mod_name=mod_name, item=item, manifest_id=manifest_id):
                 return downloads.download_one_clip(blink, mod_name, item, manifest_id)
 
-            service.submit_nowait(2, _dl, key=key)
+            service.submit_nowait(2, _dl, key=key, label="download")
 
         if newest is not None:
             _last_seen[mod_name] = newest

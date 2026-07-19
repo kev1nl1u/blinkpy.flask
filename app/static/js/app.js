@@ -26,6 +26,11 @@ function blinkApp() {
     settingsOpen:   false,
     settingsSaving: false,
 
+    // Command queue / background actions
+    queueOpen:    false,
+    queue:        { running: null, pending: [], scheduled: {} },
+    _queueTimer:  null,
+
     // Forms
     creds:        { email: '', password: '' },
     showPassword:  false,
@@ -251,6 +256,52 @@ function blinkApp() {
           this._pollClip(video, attempts + 1);
         }
       }, 3000);
+    },
+
+    // ── API: Command queue ────────────────────────────────────────
+    async openQueue() {
+      this.queueOpen    = true;
+      this.showLogoMenu = false;
+      await this.fetchQueue();
+      this._queueTimer = setInterval(() => this.fetchQueue(), 2000);
+    },
+
+    closeQueue() {
+      this.queueOpen = false;
+      if (this._queueTimer) { clearInterval(this._queueTimer); this._queueTimer = null; }
+    },
+
+    async fetchQueue() {
+      try {
+        const res = await fetch('/api/queue');
+        if (!res.ok) return;
+        this.queue = await res.json();
+      } catch (err) {
+        console.error('[queue]', err);
+      }
+    },
+
+    queueLabel(job) {
+      const i = window.APP_I18N;
+      const map = {
+        arm: i.q_arm, disarm: i.q_disarm, status: i.q_status,
+        refresh: i.q_refresh, manifest: i.q_manifest, download: i.q_download,
+      };
+      let label = map[job.label] || job.label || i.q_task;
+      if (job.label === 'download' && job.key) {
+        const parts = job.key.split(':');
+        label += ` · #${parts[parts.length - 1]}`;
+      }
+      return label;
+    },
+
+    fmtNextRun(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleString(window.APP_I18N.date_locale, { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      } catch (err) {
+        return '—';
+      }
     },
 
     async openSettings() {

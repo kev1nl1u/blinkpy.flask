@@ -99,6 +99,25 @@
     "connection_retry": "连接错误，请重试。",
     "session_expired": "会话已过期 — 请重新输入 Blink 凭据。"
   },
+  "queue": {
+    "title": "命令队列",
+    "running": "正在执行",
+    "idle": "没有正在进行的操作",
+    "pending": "等待中",
+    "empty": "队列为空",
+    "scheduled": "计划任务",
+    "bulk": "每日下载",
+    "motion": "移动侦测下载",
+    "off": "关闭",
+    "close": "关闭",
+    "op_arm": "启用系统",
+    "op_disarm": "停用系统",
+    "op_status": "读取状态",
+    "op_refresh": "刷新 Blink",
+    "op_manifest": "同步剪辑",
+    "op_download": "下载剪辑",
+    "op_task": "操作"
+  },
   "language": {
     "select": "语言"
   }
