@@ -1,3 +1,5 @@
+import atexit
+import os
 from flask import Flask, session, request
 from flask_session import Session
 from pathlib import Path
@@ -5,7 +7,6 @@ from app.services.blink import service as blink_service, run_sync
 from app.i18n import get_translation, get_all_translations, get_supported_languages
 from app.auth import login_required
 from blinkpy.auth import BlinkTwoFARequiredError
-import os
 
 
 def create_app():
@@ -49,6 +50,21 @@ def create_app():
             app.logger.warning("Blink service requires 2FA; awaiting code.")
         except Exception as exc:
             app.logger.exception("Failed to start Blink service: %s", exc)
+
+    from app.services.settings import Settings
+    from app.services.scheduler import DownloadScheduler
+    from app.services.blink.bulk import run_bulk_download
+    from app.services.blink.motion import run_motion_poll
+
+    settings = Settings("settings.json")
+    app.extensions["settings"] = settings
+    scheduler = DownloadScheduler(
+        job=lambda: run_bulk_download(blink_service),
+        motion_job=lambda: run_motion_poll(blink_service),
+    )
+    atexit.register(scheduler.shutdown)
+    scheduler.apply(settings.load())
+    app.extensions["scheduler"] = scheduler
 
     @app.after_request
     def set_security_headers(response):

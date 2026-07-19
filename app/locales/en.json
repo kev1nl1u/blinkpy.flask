@@ -74,7 +74,9 @@
     "status_disconnected": "Not connected",
     "status_unknown": "Unknown",
     "today": "Today",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "download_all": "Download all clips",
+    "download_all_started": "Downloads started"
   },
   "download": {
     "updating_videos": "Updating videos",
@@ -98,6 +100,27 @@
     "videos_downloaded": "video(s) downloaded",
     "connection_retry": "Connection error. Try again.",
     "session_expired": "Session expired — re-enter your Blink credentials."
+  },
+  "queue": {
+    "title": "Command queue",
+    "running": "Running",
+    "idle": "No operation in progress",
+    "pending": "Pending",
+    "empty": "Queue empty",
+    "scheduled": "Scheduled actions",
+    "bulk": "Daily download",
+    "motion": "Motion download",
+    "off": "Off",
+    "clear": "Clear queue",
+    "cleared": "Queue cleared",
+    "close": "Close",
+    "op_arm": "Arming system",
+    "op_disarm": "Disarming system",
+    "op_status": "Reading status",
+    "op_refresh": "Refreshing Blink",
+    "op_manifest": "Syncing clips",
+    "op_download": "Downloading clip",
+    "op_task": "Operation"
   },
   "language": {
     "select": "Language"

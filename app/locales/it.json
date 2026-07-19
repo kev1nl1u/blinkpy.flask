@@ -74,7 +74,9 @@
     "status_disconnected": "Non connesso",
     "status_unknown": "Sconosciuto",
     "today": "Oggi",
-    "yesterday": "Ieri"
+    "yesterday": "Ieri",
+    "download_all": "Scarica tutte le clip",
+    "download_all_started": "Download avviati"
   },
   "download": {
     "updating_videos": "Aggiornamento video",
@@ -98,6 +100,27 @@
     "videos_downloaded": "video scaricato/i",
     "connection_retry": "Errore di connessione. Riprova.",
     "session_expired": "Sessione scaduta — reinserisci le credenziali Blink."
+  },
+  "queue": {
+    "title": "Coda comandi",
+    "running": "In esecuzione",
+    "idle": "Nessuna operazione in corso",
+    "pending": "In attesa",
+    "empty": "Coda vuota",
+    "scheduled": "Azioni pianificate",
+    "bulk": "Download giornaliero",
+    "motion": "Download da movimento",
+    "off": "Off",
+    "clear": "Cancella coda",
+    "cleared": "Coda cancellata",
+    "close": "Chiudi",
+    "op_arm": "Attivazione sistema",
+    "op_disarm": "Disattivazione sistema",
+    "op_status": "Lettura stato",
+    "op_refresh": "Aggiornamento Blink",
+    "op_manifest": "Sincronizzazione clip",
+    "op_download": "Download clip",
+    "op_task": "Operazione"
   },
   "language": {
     "select": "Lingua"

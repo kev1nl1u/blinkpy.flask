@@ -31,6 +31,47 @@
             style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 8px 32px var(--shadow)"
           >
             <button
+              @click="openSettings()"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+              style="transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.03 7.03 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.93 6.93 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              Download schedulato
+            </button>
+            <button
+              @click="downloadAll()"
+              :disabled="downloadingAll"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+              style="transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              {{ t('dashboard.download_all') }}
+            </button>
+            <button
+              @click="openQueue()"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+              style="transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+              {{ t('queue.title') }}
+              <span
+                x-show="(queue.pending?.length || 0) + (queue.running ? 1 : 0) > 0"
+                class="ml-auto text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full"
+                style="background: var(--accent); color: #fff"
+                x-text="(queue.pending?.length || 0) + (queue.running ? 1 : 0)"
+              ></span>
+            </button>
+            <button
               @click="showLogoMenu = false; showResetModal = true"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth"
               style="color: var(--danger); transition: background-color 0.15s"
@@ -115,6 +156,139 @@
             >
               <div x-show="resetLoading" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.3); border-top-color:#fff"></div>
               <span x-text="resetLoading ? '{{ t('dashboard.resetting') }}' : '{{ t('dashboard.confirm_reset') }}'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings modal -->
+      <div
+        x-show="settingsOpen" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @keydown.escape.window="!settingsSaving && (settingsOpen = false)"
+        role="dialog" aria-modal="true"
+      >
+        <div class="w-full max-w-sm rounded-2xl p-6 space-y-5" style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
+          <p class="font-bold t-text">Download schedulato</p>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Attivo</span>
+            <input type="checkbox" x-model="settings.scheduled_download.enabled">
+          </label>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Ora</span>
+            <input type="time" x-model="settings.scheduled_download.time"
+                   class="rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+          </label>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Timezone</span>
+            <input type="text" x-model="settings.scheduled_download.timezone"
+                   class="rounded-xl px-3 py-2 w-40" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+          </label>
+
+          <div style="border-top: 1px solid var(--border-s)"></div>
+          <p class="font-bold t-text">Download da movimento</p>
+          <p class="text-xs" style="color: var(--text-muted)">Scarica i clip nuovi quando il sistema è armato.</p>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Attivo</span>
+            <input type="checkbox" x-model="settings.motion_download.enabled">
+          </label>
+          <label class="flex items-center justify-between text-sm t-text">
+            <span>Ogni (minuti)</span>
+            <input type="number" min="1" max="60" x-model.number="settings.motion_download.interval_minutes"
+                   class="rounded-xl px-3 py-2 w-24" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+          </label>
+
+          <div class="flex gap-3 pt-1">
+            <button @click="settingsOpen = false" :disabled="settingsSaving"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer t-sub" style="background: transparent; border: none">
+              {{ t('dashboard.cancel') }}
+            </button>
+            <button @click="saveSettings()" :disabled="settingsSaving"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2"
+                    :class="{ 'opacity-60': settingsSaving }"
+                    style="background: var(--raised); border: 1px solid var(--border-s)">
+              <div x-show="settingsSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+              <span x-text="settingsSaving ? '...' : 'Salva'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Command queue modal -->
+      <div
+        x-show="queueOpen" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @keydown.escape.window="closeQueue()"
+        role="dialog" aria-modal="true"
+      >
+        <div class="w-full max-w-sm rounded-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+             style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
+          <p class="font-bold t-text">{{ t('queue.title') }}</p>
+
+          <!-- Running -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">{{ t('queue.running') }}</p>
+            <template x-if="queue.running">
+              <div class="flex items-center gap-3 rounded-xl px-3 py-2.5" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <div class="w-4 h-4 rounded-full animate-spin flex-shrink-0" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+                <span class="text-sm t-text truncate" x-text="queueLabel(queue.running)"></span>
+              </div>
+            </template>
+            <template x-if="!queue.running">
+              <p class="text-sm t-sub px-1">{{ t('queue.idle') }}</p>
+            </template>
+          </div>
+
+          <!-- Pending -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">
+              {{ t('queue.pending') }}
+              <span x-show="queue.pending?.length" class="t-sub" x-text="`(${queue.pending.length})`"></span>
+            </p>
+            <template x-if="queue.pending?.length">
+              <div class="space-y-1.5">
+                <template x-for="(job, idx) in queue.pending" :key="job.seq">
+                  <div class="flex items-center gap-3 rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                    <span class="text-[11px] font-mono t-sub w-5 flex-shrink-0" x-text="idx + 1"></span>
+                    <span class="text-sm t-text truncate" x-text="queueLabel(job)"></span>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <template x-if="!queue.pending?.length">
+              <p class="text-sm t-sub px-1">{{ t('queue.empty') }}</p>
+            </template>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-s)"></div>
+
+          <!-- Scheduled background actions -->
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest t-sub font-mono mb-2">{{ t('queue.scheduled') }}</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <span class="text-sm t-text">{{ t('queue.bulk') }}</span>
+                <span class="text-xs font-mono t-sub"
+                      x-text="queue.scheduled?.bulk?.enabled ? fmtNextRun(queue.scheduled.bulk.next_run) : '{{ t('queue.off') }}'"></span>
+              </div>
+              <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <span class="text-sm t-text">{{ t('queue.motion') }}</span>
+                <span class="text-xs font-mono t-sub"
+                      x-text="queue.scheduled?.motion?.enabled ? fmtNextRun(queue.scheduled.motion.next_run) : '{{ t('queue.off') }}'"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button @click="clearQueue()"
+                    :disabled="!queue.pending?.length"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                    style="color: var(--danger); background: transparent; border: 1px solid rgba(220,38,38,0.3)">
+              {{ t('queue.clear') }}
+            </button>
+            <button @click="closeQueue()"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">
+              {{ t('queue.close') }}
             </button>
           </div>
         </div>
@@ -429,41 +603,62 @@
                         class="card-btn group relative rounded-2xl overflow-hidden text-left cursor-pointer focus:outline-none"
                         style="aspect-ratio:16/9; background: var(--raised); border: 1px solid var(--border-s)"
                         :style="{boxShadow: '0 2px 8px var(--shadow)'}"
-                        @click="playVideo(video)"
+                        @click="boostClip(video)"
                         :aria-label="`{{ t('video.play_video') }} ${video.camera_name} {{ t('video.at') }} ${video.time_fmt}`"
                       >
-                        <!-- Thumbnail -->
-                        <video
-                          :src="video.url"
-                          preload="none"
-                          muted
-                          playsinline
-                          class="absolute inset-0 w-full h-full object-cover"
-                          style="filter: grayscale(80%) brightness(0.55) contrast(1.1)"
-                          x-init="
-                            const obs = new IntersectionObserver(entries => {
-                              if (entries[0].isIntersecting) { $el.preload = 'metadata'; obs.disconnect(); }
-                            }, { rootMargin: '120px' });
-                            obs.observe($el);
-                          "
-                          @loadedmetadata="$el.currentTime = 0.5"
-                          tabindex="-1"
-                        ></video>
+                        <!-- Thumbnail + play button (local clips only) -->
+                        <template x-if="video.state !== 'remote' && video.state !== 'downloading'">
+                          <div>
+                            <!-- Thumbnail -->
+                            <video
+                              :src="video.url"
+                              preload="none"
+                              muted
+                              playsinline
+                              class="absolute inset-0 w-full h-full object-cover"
+                              style="filter: grayscale(80%) brightness(0.55) contrast(1.1)"
+                              x-init="
+                                const obs = new IntersectionObserver(entries => {
+                                  if (entries[0].isIntersecting) { $el.preload = 'metadata'; obs.disconnect(); }
+                                }, { rootMargin: '120px' });
+                                obs.observe($el);
+                              "
+                              @loadedmetadata="$el.currentTime = 0.5"
+                              tabindex="-1"
+                            ></video>
 
-                        <!-- Gradient overlay -->
-                        <div class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent"></div>
+                            <!-- Gradient overlay -->
+                            <div class="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 to-transparent"></div>
 
-                        <!-- Play button -->
-                        <div class="absolute inset-0 flex items-center justify-center">
-                          <div
-                            class="w-9 h-9 rounded-full flex items-center justify-center t-smooth"
-                            style="background: rgba(0,0,0,0.38); backdrop-filter: blur(4px); transition: background 0.15s, transform 0.15s"
-                          >
-                            <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
+                            <!-- Play button -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                              <div
+                                class="w-9 h-9 rounded-full flex items-center justify-center t-smooth"
+                                style="background: rgba(0,0,0,0.38); backdrop-filter: blur(4px); transition: background 0.15s, transform 0.15s"
+                              >
+                                <svg class="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+
+                        <!-- Remote clip placeholder -->
+                        <template x-if="video.state === 'remote'">
+                          <div class="absolute inset-0 flex items-center justify-center" style="background: var(--raised)">
+                            <svg class="w-7 h-7 t-sub" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z" />
                             </svg>
                           </div>
-                        </div>
+                        </template>
+
+                        <!-- Downloading spinner placeholder -->
+                        <template x-if="video.state === 'downloading'">
+                          <div class="absolute inset-0 flex items-center justify-center" style="background: var(--raised)">
+                            <div class="w-7 h-7 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+                          </div>
+                        </template>
 
                         <!-- Info overlay at bottom -->
                         <div class="absolute inset-x-0 bottom-0 px-2.5 pb-2 flex items-end justify-between gap-1">

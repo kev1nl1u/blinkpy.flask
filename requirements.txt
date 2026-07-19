@@ -32,3 +32,7 @@ typing_extensions==4.15.0
 urllib3==2.7.0
 Werkzeug==3.1.8
 yarl==1.23.0
+APScheduler==3.10.4
+gunicorn==26.0.0
+pytest==8.3.4
+pytest-asyncio==0.24.0

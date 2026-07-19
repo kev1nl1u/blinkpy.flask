@@ -6,6 +6,11 @@ from pathlib import Path
 from aiohttp import ClientSession
 from blinkpy.blinkpy import Blink
 from blinkpy.auth import Auth, BlinkTwoFARequiredError
+from app.services.blink import _blinkpy_patch
+from app.services.blink.queue import BlinkQueue
+
+# Blink now signals 2FA with HTTP 202; blinkpy 0.25.5 only knows 412. Patch it.
+_blinkpy_patch.apply()
 
 
 class BlinkService:
@@ -99,6 +104,29 @@ class BlinkService:
         self.started = False
         self.awaiting_2fa = False
 
+    def submit(self, priority, factory, key=None, timeout=None, label=None):
+        """Submit a Blink coroutine factory to the serialized priority queue."""
+        return queue.submit(priority, factory, key=key, timeout=timeout, label=label)
+
+    def submit_nowait(self, priority, factory, key=None, label=None):
+        return queue.submit_nowait(priority, factory, key=key, label=label)
+
+    def reprioritize(self, key, new_priority):
+        queue.reprioritize(key, new_priority)
+
+    def queue_snapshot(self):
+        """Return the serialized priority queue's running/pending state."""
+        return queue.snapshot()
+
+    def clear_queue(self):
+        """Cancel all pending queued jobs. Returns the number removed."""
+        return queue.clear()
+
+    def start_from_credentials(self):
+        """Synchronous wrapper used by the scheduler thread."""
+        from app.services.blink import run_sync
+        return run_sync(self.start())
+
 
 service = BlinkService()
 
@@ -112,6 +140,8 @@ def _run_loop():
 
 _LOOP_THREAD = threading.Thread(target=_run_loop, daemon=True)
 _LOOP_THREAD.start()
+
+queue = BlinkQueue(_BG_LOOP)
 
 
 def run_sync(coro, timeout=None):

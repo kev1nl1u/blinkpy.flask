@@ -13,6 +13,8 @@ Blink's zero-subscription local storage is great in theory, but streaming video 
 - **Google OAuth 2.0**: full Authorization Code Flow with id_token signature verification; single-email whitelist enforced server-side
 - **Blink integration**: arm / disarm all sync modules, live armed-state indicator, automatic 2FA handling
 - **Local video library**: downloads clips from Blink's local storage to disk; streams them in-browser with HTTP range support (seek / scrub)
+- **Automated downloads**: serialized priority queue + a daily bulk download and a motion-driven poller that fetches new clips near-real-time while armed (see [Downloads & Automation](#downloads--automation))
+- **Command queue view**: live panel showing the running job, pending jobs, and scheduled jobs' next run
 - **Progressive Web App**: installable on iOS / Android
 - **i18n**: English, Italian, Chinese; language persisted in session + cookie, auto-detected from `Accept-Language`
 - **Dark / light theme**: saved in `localStorage`, applied before first paint (no flash)
@@ -47,7 +49,14 @@ blink-web/
 │   │   └── endpoints.py        # All /api/* routes
 │   ├── locales/                # i18n JSON files (en, it, zh)
 │   ├── services/
-│   │   └── blink/              # BlinkService + background asyncio loop
+│   │   ├── scheduler.py        # APScheduler: daily bulk + motion interval jobs
+│   │   ├── settings.py         # settings.json load/save (schedule + motion)
+│   │   └── blink/
+│   │       ├── __init__.py     # BlinkService + background asyncio loop
+│   │       ├── queue.py        # Serialized single-worker priority queue
+│   │       ├── downloads.py    # download_one_clip + clip metadata sidecars
+│   │       ├── bulk.py         # Daily bulk download job
+│   │       └── motion.py       # Motion-driven poll job (armed-gated)
 │   ├── static/
 │   │   ├── css/app.css         # Theme variables + component styles
 │   │   ├── js/app.js           # Alpine.js blinkApp() component
@@ -152,6 +161,43 @@ The Blink client runs on a persistent background asyncio event loop (separate th
 
 ---
 
+## Downloads & Automation
+
+### Serialized priority queue
+
+Every Blink operation is funneled through a single-worker asyncio **priority queue** (`app/services/blink/queue.py`) so no two Blink calls ever overlap (the API rejects concurrent access). Lower priority number runs first; a monotonic counter breaks ties (FIFO within a priority). Entries with the same key are de-duplicated, so the same clip can't be enqueued twice.
+
+| Priority | Operation |
+|---|---|
+| `0` | arm / disarm |
+| `1` | manifest / status / refresh |
+| `2` | boosted clip (motion or manual tap) |
+| `3` | bulk clip (daily download) |
+
+A queued download can be **boosted** to priority 2 by tapping a remote clip in the gallery (`POST /api/blink/local/clip/boost`), pulling it to the front.
+
+The **Command queue** panel (logo menu → *Coda comandi*) shows the running job, pending jobs in run order, and the next run time of both scheduled jobs. It polls `GET /api/queue` every 2s while open.
+
+### Scheduled bulk download
+
+A cron job (`DownloadScheduler`, APScheduler) runs once a day at a configured time. It refreshes each sync module's local-storage manifest and enqueues **every** clip at priority 3 (dedup skips clips already on disk). This is the backlog/catch-up path. Configured under *Download schedulato* (enabled, time, timezone).
+
+### Motion-driven download
+
+Blink has **no push/webhook** for new recordings, and the cheap `homescreen` endpoint does **not** reflect new local-storage clips — only building the local-storage manifest does, and that build wakes the sync module (expensive). So the motion poller (`app/services/blink/motion.py`) is cost-bounded:
+
+1. An interval job fires every *N* minutes (default 2, configurable under *Download da movimento*).
+2. For each sync module: a cheap **armed check** (one network-status request). Disarmed modules are skipped — no motion means no recording, so the expensive manifest build is avoided.
+3. If armed: build the manifest and compare against an in-memory high-water mark (`_last_seen`, newest `created_at` seen per module).
+   - **First poll after a restart** only seeds the mark — it does **not** re-download history (that's the bulk job's role).
+   - Later polls enqueue only clips newer than the mark, at priority 2.
+
+Because `_last_seen` is in-memory, it resets on process restart (re-seeds without re-downloading). Latency to disk ≈ the poll interval.
+
+Both jobs attempt to start Blink from saved `credentials.json` if the service isn't connected; if 2FA is required or credentials are missing, the run is skipped. Settings live in `settings.json`; `POST /api/settings` persists them and reconfigures the scheduler at runtime.
+
+---
+
 ## API Reference
 
 All endpoints require a valid Google-authenticated session. Returns `401` JSON if unauthenticated.
@@ -165,23 +211,14 @@ All endpoints require a valid Google-authenticated session. Returns `401` JSON i
 | `POST` | `/api/blink/arm` | Arm all sync modules (optional body: `{"module": "name"}`) |
 | `POST` | `/api/blink/disarm` | Disarm all sync modules |
 | `GET` | `/api/local-videos` | List locally downloaded video clips (newest 50) |
-| `GET` | `/api/blink/local/download/stream` | SSE: download new clips and stream progress events |
-| `POST` | `/api/blink/local/download` | Batch download clips (blocking, no stream) |
+| `GET` | `/api/blink/local/remote` | List clips in the sync-module manifest (downloaded or not) |
+| `POST` | `/api/blink/local/clip/boost` | Boost a remote clip to priority 2 and enqueue its download |
+| `GET` | `/api/queue` | Command queue snapshot: running + pending jobs, scheduled jobs' next run |
+| `GET` | `/api/settings` | Read scheduled + motion download settings |
+| `POST` | `/api/settings` | Update settings; reconfigures the scheduler at runtime |
 | `POST` | `/api/admin/reset` | Wipe credentials, sessions, and all downloaded videos |
 | `POST` | `/api/language/<lang>` | Set UI language — `en`, `it`, or `zh` |
 | `GET` | `/videos/<path>` | Stream a downloaded MP4 with HTTP range support |
-
-### SSE Download Events
-
-`GET /api/blink/local/download/stream` emits newline-delimited JSON:
-
-| `type` | Fields | Description |
-|---|---|---|
-| `start` | `total`, `skipped` | Total new clips to download |
-| `progress` | `done`, `total`, `current`, `id` | Per-clip progress update |
-| `clip` | `id`, `camera_name`, `created_at`, `url`, `size` | Clip ready — frontend adds it to the gallery immediately |
-| `done` | `downloaded`, `skipped`, `errors` | All done |
-| `error` | `message` | Fatal error |
 
 ---
 

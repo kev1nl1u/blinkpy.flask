@@ -21,7 +21,16 @@ function blinkApp() {
     videosFetched:  false,
     videosLoading:  false,
     activeVideo:    null,
-    dl: { active: false, done: 0, total: 0, current: null },
+    remoteFetching: false,
+    settings:       { scheduled_download: { enabled: false, time: '04:00', timezone: 'UTC' }, motion_download: { enabled: false, interval_minutes: 2 } },
+    settingsOpen:   false,
+    settingsSaving: false,
+
+    // Command queue / background actions
+    queueOpen:      false,
+    queue:          { running: null, pending: [], scheduled: {} },
+    _queueTimer:    null,
+    downloadingAll: false,
 
     // Forms
     creds:        { email: '', password: '' },
@@ -156,6 +165,7 @@ function blinkApp() {
     // ── API: Videos ───────────────────────────────────────────────
     async fetchVideos() {
       if (this.videosLoading) return;
+      const inFlight = this.videos.filter(v => v.state === 'downloading');
       this.videosLoading = true;
       try {
         const res  = await fetch('/api/local-videos');
@@ -163,8 +173,12 @@ function blinkApp() {
         if (!res.ok) throw new Error(data.error ?? 'Errore');
         const seen = new Set();
         this.videos = (data.videos ?? [])
-          .map(v => this._mapVideo(v))
+          .map(v => ({ ...this._mapVideo(v), state: 'local' }))
           .filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
+        const localIds = new Set(this.videos.map(v => v.id));
+        for (const v of inFlight) {
+          if (!localIds.has(v.id)) this.videos.push(v);
+        }
         this.videosFetched = true;
       } catch (err) {
         console.error('[videos]', err);
@@ -174,7 +188,7 @@ function blinkApp() {
         this.videosLoading = false;
       }
       if (this.blinkConnected) {
-        this._downloadStream();
+        this.fetchRemoteClips();
       }
     },
 
@@ -189,36 +203,162 @@ function blinkApp() {
       };
     },
 
-    _downloadStream() {
-      this.dl = { active: true, done: 0, total: 0, current: null };
-      const es = new EventSource('/api/blink/local/download/stream');
-      es.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (msg.type === 'start') {
-          this.dl.total = msg.total;
-          if (msg.total === 0) { this.dl.active = false; es.close(); }
-        } else if (msg.type === 'progress') {
-          this.dl.done    = msg.done;
-          this.dl.current = msg.current;
-        } else if (msg.type === 'clip') {
-          this.dl.done++;
-          const existing = this.videos.find(v => v.id === msg.id);
-          if (!existing) { this.videos = [this._mapVideo(msg), ...this.videos]; }
-        } else if (msg.type === 'done') {
-          this.dl.done   = this.dl.total;
-          this.dl.active = false;
-          if (msg.downloaded > 0) this.showToast(`${msg.downloaded} ${window.APP_I18N.videos_downloaded}`, 'success');
-          es.close();
-        } else if (msg.type === 'error') {
-          console.warn('[sse]', msg.message);
-          this.dl.active = false;
-          es.close();
-        }
-      };
-      es.onerror = () => { this.dl.active = false; es.close(); };
+    playVideo(video) { this.activeVideo = video; },
+
+    async fetchRemoteClips() {
+      if (this.remoteFetching) return;
+      this.remoteFetching = true;
+      try {
+        const res  = await fetch('/api/blink/local/remote');
+        const data = await res.json();
+        if (!res.ok) return;
+        const localIds = new Set(this.videos.map(v => v.id));
+        const remotes = (data.clips ?? [])
+          .filter(c => !localIds.has(c.id))
+          .map(c => ({ ...this._mapVideo(c), state: 'remote' }));
+        this.videos = [...this.videos, ...remotes]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      } catch (err) {
+        console.error('[remote]', err);
+      } finally {
+        this.remoteFetching = false;
+      }
     },
 
-    playVideo(video) { this.activeVideo = video; },
+    async boostClip(video) {
+      if (video.state !== 'remote') { this.playVideo(video); return; }
+      video.state = 'downloading';
+      try {
+        const res = await fetch('/api/blink/local/clip/boost', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ module: video.module, clip_id: video.id }),
+        });
+        if (!res.ok) { video.state = 'remote'; this.showToast(window.APP_I18N.videos_error, 'error'); return; }
+        this._pollClip(video);
+      } catch (err) {
+        video.state = 'remote';
+        this.showToast(window.APP_I18N.videos_error, 'error');
+      }
+    },
+
+    _pollClip(video, attempts = 0) {
+      if (attempts > 60) { video.state = 'remote'; return; }
+      setTimeout(async () => {
+        try {
+          const res  = await fetch('/api/local-videos');
+          const data = await res.json();
+          const found = (data.videos ?? []).find(v => v.id === video.id);
+          if (found) {
+            Object.assign(video, this._mapVideo(found), { state: 'local' });
+          } else {
+            this._pollClip(video, attempts + 1);
+          }
+        } catch (err) {
+          this._pollClip(video, attempts + 1);
+        }
+      }, 3000);
+    },
+
+    // ── API: Command queue ────────────────────────────────────────
+    async openQueue() {
+      this.queueOpen    = true;
+      this.showLogoMenu = false;
+      await this.fetchQueue();
+      this._queueTimer = setInterval(() => this.fetchQueue(), 2000);
+    },
+
+    closeQueue() {
+      this.queueOpen = false;
+      if (this._queueTimer) { clearInterval(this._queueTimer); this._queueTimer = null; }
+    },
+
+    async fetchQueue() {
+      try {
+        const res = await fetch('/api/queue');
+        if (!res.ok) return;
+        this.queue = await res.json();
+      } catch (err) {
+        console.error('[queue]', err);
+      }
+    },
+
+    async clearQueue() {
+      try {
+        const res = await fetch('/api/queue/clear', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        await this.fetchQueue();
+        this.showToast(window.APP_I18N.queue_cleared, 'success');
+      } catch (err) {
+        this.showToast(window.APP_I18N.videos_error, 'error');
+      }
+    },
+
+    async downloadAll() {
+      this.showLogoMenu = false;
+      if (this.downloadingAll) return;
+      this.downloadingAll = true;
+      try {
+        const res = await fetch('/api/blink/local/download-all', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        this.showToast(window.APP_I18N.download_all_started, 'success');
+      } catch (err) {
+        this.showToast(err.message ?? window.APP_I18N.videos_error, 'error');
+      } finally {
+        this.downloadingAll = false;
+      }
+    },
+
+    queueLabel(job) {
+      const i = window.APP_I18N;
+      const map = {
+        arm: i.q_arm, disarm: i.q_disarm, status: i.q_status,
+        refresh: i.q_refresh, manifest: i.q_manifest, download: i.q_download,
+      };
+      let label = map[job.label] || job.label || i.q_task;
+      if (job.label === 'download' && job.key) {
+        const parts = job.key.split(':');
+        label += ` · #${parts[parts.length - 1]}`;
+      }
+      return label;
+    },
+
+    fmtNextRun(iso) {
+      if (!iso) return '—';
+      try {
+        return new Date(iso).toLocaleString(window.APP_I18N.date_locale, { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      } catch (err) {
+        return '—';
+      }
+    },
+
+    async openSettings() {
+      this.settingsOpen = true;
+      this.showLogoMenu = false;
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) this.settings = await res.json();
+      } catch (err) { console.error('[settings]', err); }
+    },
+
+    async saveSettings() {
+      this.settingsSaving = true;
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.settings),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? 'Errore');
+        this.settingsOpen = false;
+        this.showToast('OK', 'success');
+      } catch (err) {
+        this.showToast(err.message ?? 'Errore', 'error');
+      } finally {
+        this.settingsSaving = false;
+      }
+    },
 
     // ── API: Blink Login ──────────────────────────────────────────
     async submitCredentials() {
