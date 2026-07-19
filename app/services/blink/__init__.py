@@ -6,7 +6,11 @@ from pathlib import Path
 from aiohttp import ClientSession
 from blinkpy.blinkpy import Blink
 from blinkpy.auth import Auth, BlinkTwoFARequiredError
+from app.services.blink import _blinkpy_patch
 from app.services.blink.queue import BlinkQueue
+
+# Blink now signals 2FA with HTTP 202; blinkpy 0.25.5 only knows 412. Patch it.
+_blinkpy_patch.apply()
 
 
 class BlinkService:
