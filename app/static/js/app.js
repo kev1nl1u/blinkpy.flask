@@ -27,9 +27,10 @@ function blinkApp() {
     settingsSaving: false,
 
     // Command queue / background actions
-    queueOpen:    false,
-    queue:        { running: null, pending: [], scheduled: {} },
-    _queueTimer:  null,
+    queueOpen:      false,
+    queue:          { running: null, pending: [], scheduled: {} },
+    _queueTimer:    null,
+    downloadingAll: false,
 
     // Forms
     creds:        { email: '', password: '' },
@@ -278,6 +279,34 @@ function blinkApp() {
         this.queue = await res.json();
       } catch (err) {
         console.error('[queue]', err);
+      }
+    },
+
+    async clearQueue() {
+      try {
+        const res = await fetch('/api/queue/clear', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        await this.fetchQueue();
+        this.showToast(window.APP_I18N.queue_cleared, 'success');
+      } catch (err) {
+        this.showToast(window.APP_I18N.videos_error, 'error');
+      }
+    },
+
+    async downloadAll() {
+      this.showLogoMenu = false;
+      if (this.downloadingAll) return;
+      this.downloadingAll = true;
+      try {
+        const res = await fetch('/api/blink/local/download-all', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        this.showToast(window.APP_I18N.download_all_started, 'success');
+      } catch (err) {
+        this.showToast(err.message ?? window.APP_I18N.videos_error, 'error');
+      } finally {
+        this.downloadingAll = false;
       }
     },
 

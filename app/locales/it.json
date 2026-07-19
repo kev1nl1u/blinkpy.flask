@@ -74,7 +74,9 @@
     "status_disconnected": "Non connesso",
     "status_unknown": "Sconosciuto",
     "today": "Oggi",
-    "yesterday": "Ieri"
+    "yesterday": "Ieri",
+    "download_all": "Scarica tutte le clip",
+    "download_all_started": "Download avviati"
   },
   "download": {
     "updating_videos": "Aggiornamento video",
@@ -109,6 +111,8 @@
     "bulk": "Download giornaliero",
     "motion": "Download da movimento",
     "off": "Off",
+    "clear": "Cancella coda",
+    "cleared": "Coda cancellata",
     "close": "Chiudi",
     "op_arm": "Attivazione sistema",
     "op_disarm": "Disattivazione sistema",

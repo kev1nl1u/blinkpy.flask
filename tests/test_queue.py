@@ -87,6 +87,21 @@ def test_snapshot_reports_running_and_pending(bg_loop):
     fb.result(5)
 
 
+def test_clear_cancels_pending_keeps_running(bg_loop):
+    q = BlinkQueue(bg_loop)
+    order = []
+    fb = q.submit_nowait(3, _make(order, "block", 0.3))
+    time.sleep(0.05)  # "block" is now running
+    fa = q.submit_nowait(3, _make(order, "a"), key="a")
+    fc = q.submit_nowait(3, _make(order, "c"), key="c")
+    removed = q.clear()
+    assert removed == 2
+    assert fa.cancelled() and fc.cancelled()
+    fb.result(5)  # running job finishes normally
+    assert order == ["block"]
+    assert q.snapshot()["pending"] == []
+
+
 def test_snapshot_empty_when_idle(bg_loop):
     q = BlinkQueue(bg_loop)
     assert q.submit(1, _make([], "x")) == "x"

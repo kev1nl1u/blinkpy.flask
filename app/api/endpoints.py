@@ -276,6 +276,42 @@ def get_queue():
     }), 200
 
 
+@bp.route('/queue/clear', methods=['POST'])
+@login_required
+def clear_queue():
+    """Cancel all pending (not-yet-running) jobs in the command queue.
+
+    The job currently executing is not interrupted.
+    """
+    blink_service = current_app.extensions.get("blink_service")
+    if not blink_service:
+        return jsonify({"error": "Blink service not available"}), 500
+    cleared = blink_service.clear_queue()
+    return jsonify({"ok": True, "cleared": cleared}), 200
+
+
+@bp.route('/blink/local/download-all', methods=['POST'])
+@login_required
+def download_all_clips():
+    """Enqueue a download for every clip in the sync-module manifests.
+
+    Runs the bulk-download job in a background thread so the request returns
+    immediately; clips are fetched through the priority queue (priority 3,
+    dedup skips clips already on disk).
+    """
+    import threading
+    from app.services.blink.bulk import run_bulk_download
+
+    blink_service = current_app.extensions.get("blink_service")
+    if not blink_service or not blink_service.started:
+        return jsonify({"error": "Blink service not connected"}), 400
+
+    threading.Thread(
+        target=run_bulk_download, args=(blink_service,), daemon=True
+    ).start()
+    return jsonify({"ok": True}), 202
+
+
 @bp.route('/blink/local/clip/boost', methods=['POST'])
 @login_required
 def boost_clip():

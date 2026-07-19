@@ -74,7 +74,9 @@
     "status_disconnected": "未连接",
     "status_unknown": "未知",
     "today": "今天",
-    "yesterday": "昨天"
+    "yesterday": "昨天",
+    "download_all": "下载所有剪辑",
+    "download_all_started": "已开始下载"
   },
   "download": {
     "updating_videos": "正在更新视频",
@@ -109,6 +111,8 @@
     "bulk": "每日下载",
     "motion": "移动侦测下载",
     "off": "关闭",
+    "clear": "清空队列",
+    "cleared": "队列已清空",
     "close": "关闭",
     "op_arm": "启用系统",
     "op_disarm": "停用系统",

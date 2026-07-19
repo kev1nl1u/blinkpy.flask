@@ -178,6 +178,22 @@ class BlinkQueue:
             "label": entry.label,
         }
 
+    def clear(self) -> int:
+        """Cancel and drop all pending (not-yet-running) jobs.
+
+        The job currently executing is left untouched — it cannot be
+        interrupted mid-await. Returns the number of jobs removed.
+        Thread-safe.
+        """
+        with self._lock:
+            n = len(self._entries)
+            for entry in self._entries.values():
+                entry.future.cancel()
+            self._heap.clear()
+            self._entries.clear()
+            self._keyed.clear()
+        return n
+
     def snapshot(self) -> dict:
         """Return the current worker/queue state (thread-safe).
 

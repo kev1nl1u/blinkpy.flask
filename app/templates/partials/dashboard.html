@@ -43,6 +43,18 @@
               Download schedulato
             </button>
             <button
+              @click="downloadAll()"
+              :disabled="downloadingAll"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+              style="transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              {{ t('dashboard.download_all') }}
+            </button>
+            <button
               @click="openQueue()"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
               style="transition: background-color 0.15s"
@@ -267,10 +279,18 @@
             </div>
           </div>
 
-          <button @click="closeQueue()"
-                  class="w-full py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">
-            {{ t('queue.close') }}
-          </button>
+          <div class="flex gap-3">
+            <button @click="clearQueue()"
+                    :disabled="!queue.pending?.length"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                    style="color: var(--danger); background: transparent; border: 1px solid rgba(220,38,38,0.3)">
+              {{ t('queue.clear') }}
+            </button>
+            <button @click="closeQueue()"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer" style="background: var(--raised); border: 1px solid var(--border-s)">
+              {{ t('queue.close') }}
+            </button>
+          </div>
         </div>
       </div>
 

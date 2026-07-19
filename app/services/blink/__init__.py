@@ -118,6 +118,10 @@ class BlinkService:
         """Return the serialized priority queue's running/pending state."""
         return queue.snapshot()
 
+    def clear_queue(self):
+        """Cancel all pending queued jobs. Returns the number removed."""
+        return queue.clear()
+
     def start_from_credentials(self):
         """Synchronous wrapper used by the scheduler thread."""
         from app.services.blink import run_sync
