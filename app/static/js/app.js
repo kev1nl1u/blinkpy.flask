@@ -45,6 +45,7 @@ function blinkApp() {
     showLogoMenu:  false,
     showResetModal: false,
     resetLoading:  false,
+    wipeVideos:    false,
 
     // Language switcher
     currentLang:  document.documentElement.lang || 'en',
@@ -441,7 +442,11 @@ function blinkApp() {
     async resetServer() {
       this.resetLoading = true;
       try {
-        const res = await fetch('/api/admin/reset', { method: 'POST' });
+        const res = await fetch('/api/admin/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wipe_videos: this.wipeVideos }),
+        });
         if (!res.ok) {
           const d = await res.json();
           throw new Error(d.errors?.join(', ') ?? 'Reset fallito');

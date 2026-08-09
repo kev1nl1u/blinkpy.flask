@@ -131,11 +131,13 @@
               <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--danger)"></div>
               {{ t('dashboard.reset_active_sessions') }}
             </li>
-            <li class="flex items-center gap-2">
-              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:var(--danger)"></div>
-              {{ t('dashboard.reset_downloaded_videos') }}
-            </li>
           </ul>
+
+          <!-- Opt-in: downloaded videos are kept unless checked -->
+          <label class="flex items-center gap-2 text-sm t-text cursor-pointer pl-1">
+            <input type="checkbox" x-model="wipeVideos">
+            <span x-text="wipeVideos ? '{{ t('dashboard.reset_downloaded_videos') }}' : '{{ t('dashboard.keep_downloaded_videos') }}'"></span>
+          </label>
 
           <!-- Actions -->
           <div class="flex gap-3 pt-1">
