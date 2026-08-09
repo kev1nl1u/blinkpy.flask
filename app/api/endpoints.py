@@ -33,6 +33,12 @@ def get_status():
                 if v is not None:
                     armed = v
                     break
+            except BlinkTwoFARequiredError:
+                # Re-login after token expiry needs a fresh 2FA code: report it
+                # so the UI prompts instead of showing an unknown system state.
+                blink_service.awaiting_2fa = True
+                awaiting_2fa = True
+                break
             except Exception:
                 pass
 
@@ -201,6 +207,9 @@ def blink_arm():
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, True, module_name)
         return jsonify({"ok": True, "armed": armed}), 200
+    except BlinkTwoFARequiredError:
+        blink_service.awaiting_2fa = True
+        return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:
@@ -218,6 +227,9 @@ def blink_disarm():
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, False, module_name)
         return jsonify({"ok": True, "armed": armed}), 200
+    except BlinkTwoFARequiredError:
+        blink_service.awaiting_2fa = True
+        return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:

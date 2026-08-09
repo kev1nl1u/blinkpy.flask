@@ -13,6 +13,9 @@ from app.services.blink.queue import BlinkQueue
 _blinkpy_patch.apply()
 
 
+CREDENTIALS_FILE = Path("credentials.json")
+
+
 class BlinkService:
     """Manages Blink connection lifecycle for Flask app."""
 
@@ -22,22 +25,45 @@ class BlinkService:
         self.started = False
         self.awaiting_2fa = False
 
+    def save_credentials(self):
+        """Write current auth state (incl. rotated tokens) to credentials.json.
+
+        Blink rotates the refresh token on every renewal, so the file must be
+        rewritten after each one — otherwise the next process start tries a
+        refresh token that Blink has already invalidated.
+        """
+        if not self.blink or not self.blink.auth:
+            return
+        try:
+            tmp = CREDENTIALS_FILE.with_suffix(".json.tmp")
+            with open(tmp, "w") as f:
+                json.dump(self.blink.auth.login_attributes, f)
+            tmp.chmod(0o600)
+            tmp.replace(CREDENTIALS_FILE)
+        except Exception:
+            # Never let a persistence failure break an in-flight Blink call.
+            pass
+
+    def _make_auth(self, credentials):
+        """Build an Auth bound to a fresh session, persisting on token refresh."""
+        self.session = ClientSession()
+        self.blink = Blink()
+        auth = Auth(credentials, session=self.session, callback=self.save_credentials)
+        self.blink.auth = auth
+        return auth
+
     async def login_with_credentials(self, email, password):
         """Login with provided email and password."""
         await self.stop()
 
-        self.session = ClientSession()
-        self.blink = Blink()
-
         credentials = {"username": email, "password": password, "host": "prod"}
-        auth = Auth(credentials, session=self.session)
-        self.blink.auth = auth
+        self._make_auth(credentials)
 
         try:
-            await self.blink.start()
+            if not await self.blink.start():
+                raise ValueError("Blink login failed")
             await self.blink.refresh(force=True)
-            await self.blink.save("credentials.json")
-            Path("credentials.json").chmod(0o600)
+            self.save_credentials()
             self.started = True
             self.awaiting_2fa = False
         except BlinkTwoFARequiredError:
@@ -51,24 +77,25 @@ class BlinkService:
         if self.started:
             return self.blink
 
-        if not Path("credentials.json").exists():
+        if not CREDENTIALS_FILE.exists():
             raise ValueError("credentials.json not found")
 
         try:
-            with open("credentials.json", 'r') as f:
+            with open(CREDENTIALS_FILE, 'r') as f:
                 creds = json.load(f)
         except (json.JSONDecodeError, IOError):
             raise ValueError("Invalid or empty credentials.json")
 
-        self.session = ClientSession()
-        self.blink = Blink()
-
-        auth = Auth(creds, session=self.session)
-        self.blink.auth = auth
+        self._make_auth(creds)
 
         try:
-            await self.blink.start()
+            # Blink.start() swallows LoginError/TokenRefreshFailed and returns
+            # False; treating that as success leaves the app "connected" with
+            # no sync modules, which surfaces as unknown status + failed arm.
+            if not await self.blink.start():
+                raise ValueError("Blink login failed — re-enter credentials")
             await self.blink.refresh(force=True)
+            self.save_credentials()
             self.started = True
             self.awaiting_2fa = False
         except BlinkTwoFARequiredError:
@@ -84,8 +111,7 @@ class BlinkService:
         try:
             await self.blink.send_2fa_code(code)
             await self.blink.refresh(force=True)
-            await self.blink.save("credentials.json")
-            Path("credentials.json").chmod(0o600)
+            self.save_credentials()
             self.started = True
             self.awaiting_2fa = False
         except Exception:
