@@ -40,7 +40,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.03 7.03 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.93 6.93 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
               </svg>
-              Download schedulato
+              {{ t('settings.scheduled_title') }}
             </button>
             <button
               @click="downloadAll()"
@@ -72,6 +72,18 @@
               ></span>
             </button>
             <button
+              x-show="canInstall"
+              @click="installApp()"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold cursor-pointer t-smooth"
+              style="color: var(--accent); transition: background-color 0.15s"
+              onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+              </svg>
+              {{ t('dashboard.install_app') }}
+            </button>
+            <button
               @click="showLogoMenu = false; showResetModal = true"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth"
               style="color: var(--danger); transition: background-color 0.15s"
@@ -86,6 +98,69 @@
         </div>
 
         <span class="font-bold text-[16px] t-text" style="letter-spacing:-0.2px">Blink</span>
+      </div>
+
+      <!-- Modal istruzioni installazione iOS (Safari non espone il prompt) -->
+      <div
+        x-show="showIosInstall"
+        x-cloak
+        x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @click.self="showIosInstall = false"
+        @keydown.escape.window="showIosInstall = false"
+        role="dialog" aria-modal="true"
+      >
+        <div
+          x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-250"
+          x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+          x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+          class="w-full max-w-sm rounded-2xl p-6 space-y-5"
+          style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)"
+        >
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                 style="background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1); border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25)">
+              <svg class="w-5 h-5 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+              </svg>
+            </div>
+            <div>
+              <p class="font-bold t-text">{{ t('dashboard.install_ios_title') }}</p>
+              <p class="text-sm t-sub mt-1">{{ t('dashboard.install_ios_intro') }}</p>
+            </div>
+          </div>
+
+          <ol class="space-y-2.5 text-sm t-text pl-1">
+            <li class="flex items-center gap-3">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0"
+                    style="background: var(--accent); color:#fff">1</span>
+              {{ t('dashboard.install_ios_step1') }}
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0"
+                    style="background: var(--accent); color:#fff">2</span>
+              {{ t('dashboard.install_ios_step2') }}
+            </li>
+            <li class="flex items-center gap-3">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-mono font-bold flex-shrink-0"
+                    style="background: var(--accent); color:#fff">3</span>
+              {{ t('dashboard.install_ios_step3') }}
+            </li>
+          </ol>
+
+          <button
+            @click="showIosInstall = false"
+            class="w-full py-3 rounded-xl text-sm font-semibold cursor-pointer t-smooth"
+            style="background: var(--accent); color: #fff"
+          >
+            {{ t('dashboard.install_got_it') }}
+          </button>
+        </div>
       </div>
 
       <!-- Modal conferma reset -->
@@ -171,31 +246,31 @@
         role="dialog" aria-modal="true"
       >
         <div class="w-full max-w-sm rounded-2xl p-6 space-y-5" style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
-          <p class="font-bold t-text">Download schedulato</p>
+          <p class="font-bold t-text">{{ t('settings.scheduled_title') }}</p>
           <label class="flex items-center justify-between text-sm t-text">
-            <span>Attivo</span>
+            <span>{{ t('settings.enabled') }}</span>
             <input type="checkbox" x-model="settings.scheduled_download.enabled">
           </label>
           <label class="flex items-center justify-between text-sm t-text">
-            <span>Ora</span>
+            <span>{{ t('settings.time') }}</span>
             <input type="time" x-model="settings.scheduled_download.time"
                    class="rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
           </label>
           <label class="flex items-center justify-between text-sm t-text">
-            <span>Timezone</span>
+            <span>{{ t('settings.timezone') }}</span>
             <input type="text" x-model="settings.scheduled_download.timezone"
                    class="rounded-xl px-3 py-2 w-40" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
           </label>
 
           <div style="border-top: 1px solid var(--border-s)"></div>
-          <p class="font-bold t-text">Download da movimento</p>
-          <p class="text-xs" style="color: var(--text-muted)">Scarica i clip nuovi quando il sistema è armato.</p>
+          <p class="font-bold t-text">{{ t('settings.motion_title') }}</p>
+          <p class="text-xs" style="color: var(--text-muted)">{{ t('settings.motion_hint') }}</p>
           <label class="flex items-center justify-between text-sm t-text">
-            <span>Attivo</span>
+            <span>{{ t('settings.enabled') }}</span>
             <input type="checkbox" x-model="settings.motion_download.enabled">
           </label>
           <label class="flex items-center justify-between text-sm t-text">
-            <span>Ogni (minuti)</span>
+            <span>{{ t('settings.interval_minutes') }}</span>
             <input type="number" min="1" max="60" x-model.number="settings.motion_download.interval_minutes"
                    class="rounded-xl px-3 py-2 w-24" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
           </label>
@@ -210,7 +285,7 @@
                     :class="{ 'opacity-60': settingsSaving }"
                     style="background: var(--raised); border: 1px solid var(--border-s)">
               <div x-show="settingsSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
-              <span x-text="settingsSaving ? '...' : 'Salva'"></span>
+              <span x-text="settingsSaving ? '{{ t('settings.saving') }}' : '{{ t('settings.save') }}'"></span>
             </button>
           </div>
         </div>

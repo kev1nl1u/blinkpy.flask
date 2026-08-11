@@ -41,6 +41,13 @@ function blinkApp() {
     pinLoading:    false,
     pinError:      '',
 
+    // PWA install ("add to home screen")
+    installPrompt:  null,
+    installReady:   false,
+    isStandalone:   false,
+    isIos:          false,
+    showIosInstall: false,
+
     // Logo menu / reset modal
     showLogoMenu:  false,
     showResetModal: false,
@@ -68,6 +75,12 @@ function blinkApp() {
       if (this.awaiting2FA)     return 'blink-2fa';
       if (!this.blinkConnected) return 'blink-setup';
       return 'dashboard';
+    },
+
+    // Hide the install entry once the app runs from the home screen. On iOS
+    // there is no install event, so offer the manual instructions instead.
+    get canInstall() {
+      return !this.isStandalone && (this.installReady || this.isIos);
     },
 
     get statusLabel() {
@@ -103,6 +116,7 @@ function blinkApp() {
     // ── Lifecycle ─────────────────────────────────────────────────
     async init() {
       this.applyTheme(this.theme);
+      this._initInstall();
       if (!this.authenticated) return;
       await this.fetchStatus();
       this.fetchVideos();
@@ -353,7 +367,7 @@ function blinkApp() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? 'Errore');
         this.settingsOpen = false;
-        this.showToast('OK', 'success');
+        this.showToast(window.APP_I18N.settings_saved, 'success');
       } catch (err) {
         this.showToast(err.message ?? 'Errore', 'error');
       } finally {
@@ -460,6 +474,47 @@ function blinkApp() {
     },
 
     logout() { window.location.href = '/logout'; },
+
+    // ── PWA install ───────────────────────────────────────────────
+    _initInstall() {
+      const nav = window.navigator;
+      this.isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          nav.standalone === true;
+      // iPadOS 13+ reports itself as MacIntel, so touch points are the tell.
+      this.isIos = /iphone|ipad|ipod/i.test(nav.userAgent) ||
+                   (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+
+      // The event may have fired before Alpine booted; base.html stashed it.
+      this.installPrompt = window._pwaInstallPrompt;
+      this.installReady  = !!this.installPrompt;
+
+      window.addEventListener('pwa-installable', () => {
+        this.installPrompt = window._pwaInstallPrompt;
+        this.installReady  = true;
+      });
+      window.addEventListener('appinstalled', () => {
+        this._clearInstallPrompt();
+        this.isStandalone = true;
+        this.showToast(window.APP_I18N.install_done, 'success');
+      });
+    },
+
+    _clearInstallPrompt() {
+      this.installPrompt = null;
+      window._pwaInstallPrompt = null;
+      this.installReady = false;
+    },
+
+    async installApp() {
+      this.showLogoMenu = false;
+      if (!this.installPrompt) { this.showIosInstall = true; return; }
+      this.installPrompt.prompt();
+      const { outcome } = await this.installPrompt.userChoice;
+      // A prompt event is single-use: Chrome re-fires beforeinstallprompt later
+      // if the user dismissed it, which restores the button on its own.
+      this._clearInstallPrompt();
+      if (outcome !== 'accepted') this.showToast(window.APP_I18N.install_dismissed, 'info');
+    },
 
     // ── Toast ─────────────────────────────────────────────────────
     showToast(message, type = 'info') {
