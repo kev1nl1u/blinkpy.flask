@@ -1,6 +1,9 @@
-"""OAuth 2.0 routes: /login, /oauth2callback, /logout."""
+"""Google auth routes: /login, /login/redirect, /auth/google/token, /oauth2callback, /logout."""
 
-from flask import Blueprint, redirect, session, request, jsonify, current_app, make_response, url_for
+from flask import (
+    Blueprint, redirect, session, request, jsonify, current_app,
+    make_response, url_for, render_template,
+)
 from app.auth import GoogleOAuth2Manager
 
 import requests as _requests
@@ -11,11 +14,70 @@ oauth2_manager = GoogleOAuth2Manager()
 
 @bp.route('/login', methods=['GET'])
 def login():
+    """Login page whose Google button posts an ID token to /auth/google/token.
+
+    A full-page redirect to Google can't be the default any more. An installed
+    PWA on iOS keeps its own cookie store, so the leg through accounts.google.com
+    comes back in the *browser's* store: `oauth2_state` is missing there (the
+    "possible CSRF attack" error) and the session cookie would be planted in the
+    wrong store even if the check passed. Handing the ID token to a same-origin
+    fetch keeps the whole exchange inside whichever store the page runs in.
+    """
+    if session.get('authenticated'):
+        return redirect('/')
+    response = make_response(
+        render_template('login.html', google_client_id=oauth2_manager.client_id)
+    )
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
+
+
+@bp.route('/login/redirect', methods=['GET'])
+def login_redirect():
+    """Classic authorization-code redirect — fallback when the button can't run."""
     url_autorizzazione, state = oauth2_manager.genera_url_login()
     session['oauth2_state'] = state
     session.modified = True
-    current_app.logger.info('OAuth2 login flow started')
-    return redirect(url_autorizzazione)
+    current_app.logger.info('OAuth2 redirect login flow started')
+    response = make_response(redirect(url_autorizzazione))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
+
+
+@bp.route('/auth/google/token', methods=['POST'])
+def google_token():
+    """Create the session from an ID token collected by Google Identity Services.
+
+    There is no `state` to check here and none is needed: the token is signed by
+    Google and carries our client_id as its audience, and it arrives on a
+    same-origin JSON POST, which a cross-site page cannot forge — that content
+    type forces a CORS preflight this app never answers. A replayed token still
+    has to clear the whitelist.
+    """
+    payload = request.get_json(silent=True) or {}
+    credential = payload.get('credential')
+    if not credential:
+        return jsonify({'error': 'Missing credential'}), 400
+
+    try:
+        claims = oauth2_manager.decodifica_e_valida_id_token(credential)
+    except ValueError as e:
+        current_app.logger.warning('Rejected Google credential: %s', e)
+        return jsonify({'error': 'Invalid Google credential'}), 401
+
+    if not claims.get('email_verified'):
+        return jsonify({'error': 'Unverified Google email'}), 403
+
+    email = claims.get('email')
+    try:
+        oauth2_manager.verifica_whitelist(email)
+    except PermissionError as e:
+        current_app.logger.warning('Access denied for email: %s', email)
+        return jsonify({'error': str(e)}), 403
+
+    oauth2_manager.crea_sessione_sicura(email)
+    current_app.logger.info('Authenticated via Google Identity Services: %s', email)
+    return jsonify({'success': True})
 
 
 @bp.route('/oauth2callback', methods=['GET'])

@@ -6,7 +6,9 @@
   "auth": {
     "login_with_google": "Accedi con Google",
     "restricted_access": "Accesso riservato agli utenti autorizzati",
-    "connecting": "Connessione in corso…"
+    "connecting": "Connessione in corso…",
+    "use_redirect": "Problemi? Accedi con il reindirizzamento",
+    "login_failed": "Accesso non riuscito"
   },
   "blink_setup": {
     "connect_blink": "Connetti Blink",

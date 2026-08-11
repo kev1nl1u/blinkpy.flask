@@ -6,7 +6,9 @@
   "auth": {
     "login_with_google": "使用 Google 登录",
     "restricted_access": "仅限授权用户访问",
-    "connecting": "正在连接…"
+    "connecting": "正在连接…",
+    "use_redirect": "登录遇到问题？改用重定向方式",
+    "login_failed": "登录失败"
   },
   "blink_setup": {
     "connect_blink": "连接 Blink",
