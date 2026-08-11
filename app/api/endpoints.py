@@ -33,6 +33,12 @@ def get_status():
                 if v is not None:
                     armed = v
                     break
+            except BlinkTwoFARequiredError:
+                # Re-login after token expiry needs a fresh 2FA code: report it
+                # so the UI prompts instead of showing an unknown system state.
+                blink_service.awaiting_2fa = True
+                awaiting_2fa = True
+                break
             except Exception:
                 pass
 
@@ -201,6 +207,9 @@ def blink_arm():
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, True, module_name)
         return jsonify({"ok": True, "armed": armed}), 200
+    except BlinkTwoFARequiredError:
+        blink_service.awaiting_2fa = True
+        return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:
@@ -218,6 +227,9 @@ def blink_disarm():
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, False, module_name)
         return jsonify({"ok": True, "armed": armed}), 200
+    except BlinkTwoFARequiredError:
+        blink_service.awaiting_2fa = True
+        return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
     except KeyError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:
@@ -384,8 +396,13 @@ def get_remote_clips():
 @bp.route('/admin/reset', methods=['POST'])
 @login_required
 def admin_reset():
-    """Stop Blink, delete credentials, all sessions, and all downloaded videos."""
-    errors = []
+    """Stop Blink, delete credentials, all sessions, and optionally downloaded videos.
+
+    Body: {"wipe_videos": bool} — videos are kept unless explicitly requested.
+    """
+    data        = request.get_json(silent=True) or {}
+    wipe_videos = bool(data.get("wipe_videos", False))
+    errors      = []
 
     blink_service = current_app.extensions.get("blink_service")
     if blink_service:
@@ -400,17 +417,27 @@ def admin_reset():
     except Exception as e:
         errors.append(f"credentials: {e}")
 
-    try:
-        if DOWNLOAD_ROOT.exists():
-            shutil.rmtree(DOWNLOAD_ROOT)
-    except Exception as e:
-        errors.append(f"clips: {e}")
+    if wipe_videos:
+        try:
+            if DOWNLOAD_ROOT.exists():
+                shutil.rmtree(DOWNLOAD_ROOT)
+            DOWNLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            errors.append(f"clips: {e}")
 
-    # Wiping flask_session files invalidates all active sessions server-side
+    # Wipe session *files* to invalidate active sessions, but keep the directory
+    # itself — Flask-Session needs it to persist new sessions (deleting the dir
+    # locks everyone out until a manual server restart).
     try:
         sessions_dir = Path("flask_session")
         if sessions_dir.exists():
-            shutil.rmtree(sessions_dir)
+            for f in sessions_dir.iterdir():
+                if f.is_file():
+                    f.unlink()
+                elif f.is_dir():
+                    shutil.rmtree(f)
+        else:
+            sessions_dir.mkdir(parents=True, exist_ok=True)
     except Exception as e:
         errors.append(f"sessions: {e}")
 

@@ -27,6 +27,17 @@
     })();
   </script>
 
+  <!-- Chrome fires beforeinstallprompt once, and it can land before app.js runs.
+       Stash the event here so the install button can offer it later. -->
+  <script>
+    window._pwaInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window._pwaInstallPrompt = e;
+      window.dispatchEvent(new CustomEvent('pwa-installable'));
+    });
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -88,6 +99,9 @@ window.APP_I18N = {
   videos_downloaded:   "{{ t('messages.videos_downloaded') }}",
   connection_retry:    "{{ t('messages.connection_retry') }}",
   session_expired:     "{{ t('messages.session_expired') }}",
+  install_done:        "{{ t('messages.install_done') }}",
+  install_dismissed:   "{{ t('messages.install_dismissed') }}",
+  settings_saved:      "{{ t('messages.settings_saved') }}",
   q_arm:               "{{ t('queue.op_arm') }}",
   q_disarm:            "{{ t('queue.op_disarm') }}",
   q_status:            "{{ t('queue.op_status') }}",

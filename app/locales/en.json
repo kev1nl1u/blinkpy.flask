@@ -6,7 +6,9 @@
   "auth": {
     "login_with_google": "Sign in with Google",
     "restricted_access": "Access restricted to authorized users only",
-    "connecting": "Connecting…"
+    "connecting": "Connecting…",
+    "use_redirect": "Trouble signing in? Use the redirect flow",
+    "login_failed": "Sign-in failed"
   },
   "blink_setup": {
     "connect_blink": "Connect Blink",
@@ -47,6 +49,13 @@
     "disable_system": "Disarmed",
     "enable_system": "Armed",
     "reset_server": "Reset server",
+    "install_app": "Install app",
+    "install_ios_title": "Add to Home Screen",
+    "install_ios_intro": "Safari has no install button — add it manually.",
+    "install_ios_step1": "Tap Share in the Safari toolbar",
+    "install_ios_step2": "Pick \"Add to Home Screen\"",
+    "install_ios_step3": "Confirm with \"Add\"",
+    "install_got_it": "Got it",
     "logout": "Logout",
     "toggle_theme": "Toggle light/dark theme",
     "dark_mode": "Switch to light theme",
@@ -55,7 +64,8 @@
     "reset_warning": "This action is irreversible. The following will be deleted:",
     "reset_blink_credentials": "Blink credentials",
     "reset_active_sessions": "All active sessions",
-    "reset_downloaded_videos": "All downloaded videos",
+    "reset_downloaded_videos": "Also delete all downloaded videos",
+    "keep_downloaded_videos": "Keep downloaded videos",
     "cancel": "Cancel",
     "confirm_reset": "Confirm reset",
     "resetting": "Resetting…",
@@ -87,11 +97,25 @@
     "play_video": "Play",
     "at": "at"
   },
+  "settings": {
+    "scheduled_title": "Scheduled download",
+    "enabled": "Enabled",
+    "time": "Time",
+    "timezone": "Time zone",
+    "motion_title": "Motion download",
+    "motion_hint": "Downloads new clips while the system is armed.",
+    "interval_minutes": "Every (minutes)",
+    "save": "Save",
+    "saving": "Saving…"
+  },
   "messages": {
     "success": "Operation completed",
     "error": "Error",
     "info": "Information",
     "error_connection": "Connection error",
+    "install_done": "App installed",
+    "install_dismissed": "Install cancelled",
+    "settings_saved": "Settings saved",
     "system_armed": "System armed",
     "system_disarmed": "System disarmed",
     "blink_login_ok": "Blink login successful",

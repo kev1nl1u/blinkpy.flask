@@ -6,7 +6,9 @@
   "auth": {
     "login_with_google": "Accedi con Google",
     "restricted_access": "Accesso riservato agli utenti autorizzati",
-    "connecting": "Connessione in corso…"
+    "connecting": "Connessione in corso…",
+    "use_redirect": "Problemi? Accedi con il reindirizzamento",
+    "login_failed": "Accesso non riuscito"
   },
   "blink_setup": {
     "connect_blink": "Connetti Blink",
@@ -47,6 +49,13 @@
     "disable_system": "Disattivato",
     "enable_system": "Attivo",
     "reset_server": "Reset server",
+    "install_app": "Installa app",
+    "install_ios_title": "Aggiungi alla schermata Home",
+    "install_ios_intro": "Safari non ha un pulsante di installazione: aggiungila a mano.",
+    "install_ios_step1": "Tocca Condividi nella barra di Safari",
+    "install_ios_step2": "Scegli «Aggiungi a Home»",
+    "install_ios_step3": "Conferma con «Aggiungi»",
+    "install_got_it": "Ho capito",
     "logout": "Logout",
     "toggle_theme": "Passa al tema chiaro/scuro",
     "dark_mode": "Passa al tema chiaro",
@@ -55,7 +64,8 @@
     "reset_warning": "Questa azione è irreversibile. Verranno eliminati:",
     "reset_blink_credentials": "Credenziali Blink",
     "reset_active_sessions": "Tutte le sessioni attive",
-    "reset_downloaded_videos": "Tutti i video scaricati",
+    "reset_downloaded_videos": "Cancella anche tutti i video scaricati",
+    "keep_downloaded_videos": "Mantieni i video scaricati",
     "cancel": "Annulla",
     "confirm_reset": "Conferma reset",
     "resetting": "Reset…",
@@ -87,11 +97,25 @@
     "play_video": "Riproduci",
     "at": "alle"
   },
+  "settings": {
+    "scheduled_title": "Download schedulato",
+    "enabled": "Attivo",
+    "time": "Ora",
+    "timezone": "Fuso orario",
+    "motion_title": "Download da movimento",
+    "motion_hint": "Scarica i clip nuovi quando il sistema è armato.",
+    "interval_minutes": "Ogni (minuti)",
+    "save": "Salva",
+    "saving": "Salvataggio…"
+  },
   "messages": {
     "success": "Operazione completata",
     "error": "Errore",
     "info": "Informazione",
     "error_connection": "Errore connessione",
+    "install_done": "App installata",
+    "install_dismissed": "Installazione annullata",
+    "settings_saved": "Impostazioni salvate",
     "system_armed": "Sistema attivato",
     "system_disarmed": "Sistema disattivato",
     "blink_login_ok": "Accesso Blink completato",

@@ -1,5 +1,5 @@
 from pathlib import Path
-from flask import Blueprint, render_template, send_from_directory, current_app, session, request, Response, abort
+from flask import Blueprint, render_template, send_from_directory, current_app, session
 from app.auth import login_required
 
 bp = Blueprint('main', __name__)
@@ -21,64 +21,35 @@ def service_worker():
     return response
 
 
+# Clips are immutable: the filename carries the Blink clip id and a downloaded
+# file is never rewritten. Let the browser keep them so scrubbing and thumbnail
+# redraws don't re-hit the origin. `private` keeps the CDN out of it — these are
+# behind login.
+VIDEO_MAX_AGE = 31536000  # 1 year
+
+
 @bp.route('/videos/<path:filename>')
 @login_required
 def serve_video(filename):
-    """Stream locally downloaded clips with proper HTTP range support."""
-    video_dir = Path(current_app.root_path).parent / 'local_clips'
-    file_path = (video_dir / filename).resolve()
+    """Serve locally downloaded clips with HTTP range support.
 
-    # Security: ensure resolved path is inside video_dir
-    if not str(file_path).startswith(str(video_dir.resolve())):
-        abort(403)
-    if not file_path.exists() or not file_path.is_file():
-        abort(404)
+    Werkzeug's conditional response implements Range/If-Range/416 correctly
+    (including suffix ranges like `bytes=-500`, which the previous hand-rolled
+    parser served as a *prefix*) and hands the file to the WSGI server's
+    file_wrapper instead of a Python read loop — so a stalled player no longer
+    pins a gunicorn thread for the whole download.
+    """
+    video_dir = (Path(current_app.root_path).parent / 'local_clips').resolve()
 
-    file_size = file_path.stat().st_size
-    range_header = request.headers.get('Range')
-
-    if range_header:
-        try:
-            unit, ranges_str = range_header.strip().split('=', 1)
-            if unit != 'bytes':
-                abort(416)
-            range_parts = ranges_str.split('-', 1)
-            start = int(range_parts[0]) if range_parts[0] else 0
-            end   = int(range_parts[1]) if len(range_parts) > 1 and range_parts[1] else file_size - 1
-        except (ValueError, IndexError):
-            abort(416)
-
-        if start >= file_size or end >= file_size or start > end:
-            resp = Response(status=416)
-            resp.headers['Content-Range'] = f'bytes */{file_size}'
-            return resp
-
-        length = end - start + 1
-
-        def _stream():
-            with open(file_path, 'rb') as f:
-                f.seek(start)
-                remaining = length
-                while remaining > 0:
-                    chunk = f.read(min(65536, remaining))
-                    if not chunk:
-                        break
-                    remaining -= len(chunk)
-                    yield chunk
-
-        return Response(
-            _stream(), 206,
-            mimetype='video/mp4',
-            headers={
-                'Content-Range':  f'bytes {start}-{end}/{file_size}',
-                'Accept-Ranges':  'bytes',
-                'Content-Length': str(length),
-                'Cache-Control':  'no-store',
-            },
-        )
-
-    # Full file — still advertise range support so player can seek
-    resp = send_from_directory(video_dir, filename, conditional=True)
+    # send_from_directory rejects traversal via safe_join and 404s on a miss.
+    resp = send_from_directory(
+        video_dir, filename, conditional=True, max_age=VIDEO_MAX_AGE
+    )
     resp.headers['Accept-Ranges'] = 'bytes'
+    # send_file marks the response `public` whenever max_age is set; these clips
+    # sit behind login with Cloudflare in front, so force `private` instead.
+    resp.cache_control.public = False
+    resp.cache_control.private = True
+    resp.cache_control.immutable = True
     return resp
 

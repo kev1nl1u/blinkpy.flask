@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block body %}
+<div class="min-h-dvh flex flex-col safe-top safe-bottom">
+  <div class="flex-1 flex flex-col items-center justify-center px-6 pb-8 animate-fade-up">
+    <div class="w-full max-w-xs space-y-10">
+
+      <div class="text-center space-y-4">
+        <div class="mx-auto w-16 h-16 rounded-[22px] t-surface t-smooth flex items-center justify-center" style="border: 1px solid var(--border-s); box-shadow: 0 4px 20px var(--shadow)">
+          <svg class="w-7 h-7 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold t-text" style="letter-spacing: -0.3px">{{ t('app.title') }}</h1>
+          <p class="text-sm t-sub mt-1">{{ t('app.subtitle') }}</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Google Identity Services renders the button into .g_id_signin -->
+        <div
+          id="g_id_onload"
+          data-client_id="{{ google_client_id }}"
+          data-callback="onGoogleCredential"
+          data-ux_mode="popup"
+          data-auto_prompt="false"
+          data-itp_support="true"
+        ></div>
+        <div
+          class="g_id_signin flex justify-center"
+          data-type="standard"
+          data-theme="outline"
+          data-size="large"
+          data-text="signin_with"
+          data-shape="pill"
+          data-logo_alignment="left"
+        ></div>
+
+        <p id="login-busy" class="text-center text-sm t-sub hidden">{{ t('auth.connecting') }}</p>
+        <p id="login-error" class="text-center text-sm hidden" style="color: var(--danger)"></p>
+
+        <a
+          href="{{ url_for('auth.login_redirect') }}"
+          class="block text-center text-xs t-sub underline"
+          style="opacity: 0.8"
+        >{{ t('auth.use_redirect') }}</a>
+      </div>
+
+      <p class="text-center text-xs t-sub" style="opacity: 0.85">{{ t('auth.restricted_access') }}</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+  // `credentials: 'same-origin'` is the whole point: the Set-Cookie comes back
+  // to the context that made the call, so an installed PWA gets its own session
+  // instead of planting one in the browser's cookie store.
+  async function onGoogleCredential(response) {
+    const busy = document.getElementById('login-busy');
+    const err  = document.getElementById('login-error');
+    err.classList.add('hidden');
+    busy.classList.remove('hidden');
+    try {
+      const res = await fetch('/auth/google/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ credential: response.credential }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || '{{ t('auth.login_failed') }}');
+      window.location.replace('/');
+    } catch (e) {
+      busy.classList.add('hidden');
+      err.textContent = e.message || '{{ t('auth.login_failed') }}';
+      err.classList.remove('hidden');
+    }
+  }
+</script>
+{% endblock %}
