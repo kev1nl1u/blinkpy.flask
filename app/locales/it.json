@@ -150,7 +150,6 @@
     "select": "Lingua"
   },
   "rearm": {
-    "more_options": "Più opzioni",
     "auto_rearm": "Riattiva automaticamente",
     "modal_title": "Riattivazione automatica",
     "modal_hint": "Il sistema si riattiva da solo al momento scelto.",

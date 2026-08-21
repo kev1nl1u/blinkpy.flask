@@ -150,7 +150,6 @@
     "select": "Language"
   },
   "rearm": {
-    "more_options": "More options",
     "auto_rearm": "Re-arm automatically",
     "modal_title": "Automatic re-arm",
     "modal_hint": "The system arms itself again at the moment you pick.",

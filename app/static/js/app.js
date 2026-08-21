@@ -50,7 +50,6 @@ function blinkApp() {
 
     // Auto re-arm (arm the system again by itself, later)
     autoRearmAt:   null,        // ISO instant of the pending re-arm, or null
-    showRearmMenu: false,       // "more options" dropdown under the toggle
     rearmOpen:     false,       // scheduling modal
     rearmMode:     'duration',  // 'duration' | 'time'
     rearmDurH:     0,
@@ -559,7 +558,6 @@ function blinkApp() {
     },
 
     openRearmModal() {
-      this.showRearmMenu = false;
       const base = this.autoRearmAt ? new Date(this.autoRearmAt) : new Date(Date.now() + 30 * 60000);
       this.rearmHour   = base.getHours();
       this.rearmMinute = base.getMinutes();
@@ -605,8 +603,7 @@ function blinkApp() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? window.APP_I18N.error_connection);
         this._syncRearm(data.auto_rearm);
-        this.rearmOpen     = false;
-        this.showRearmMenu = false;
+        this.rearmOpen = false;
         this.showToast(window.APP_I18N.rearm_cancelled, 'info');
       } catch (err) {
         this.showToast(err.message ?? window.APP_I18N.error_connection, 'error');

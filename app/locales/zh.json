@@ -150,7 +150,6 @@
     "select": "语言"
   },
   "rearm": {
-    "more_options": "更多选项",
     "auto_rearm": "自动重新启用",
     "modal_title": "自动重新启用",
     "modal_hint": "系统将在你选择的时间自动重新启用。",
