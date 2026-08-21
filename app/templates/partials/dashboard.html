@@ -362,23 +362,63 @@
 
           <!-- Delay: presets + free minutes -->
           <div x-show="rearmMode === 'duration'" class="space-y-3">
+            <div class="wheel-set" role="group" aria-label="{{ t('rearm.tab_duration') }}">
+              <div class="wheel-band" aria-hidden="true"></div>
+
+              <div
+                class="wheel" x-ref="durHourWheel"
+                @scroll.passive="onWheelScroll('durHour')"
+                role="listbox" aria-label="{{ t('rearm.hours') }}"
+              >
+                <div class="wheel-pad" aria-hidden="true"></div>
+                <template x-for="h in 24" :key="'dh' + h">
+                  <button
+                    type="button" class="wheel-item"
+                    :class="rearmDurH === h - 1 ? 'is-active' : ''"
+                    :aria-selected="rearmDurH === h - 1"
+                    role="option"
+                    @click="pickWheel('durHour', h - 1)"
+                    x-text="String(h - 1).padStart(2, '0')"
+                  ></button>
+                </template>
+                <div class="wheel-pad" aria-hidden="true"></div>
+              </div>
+              <span class="wheel-unit" aria-hidden="true">{{ t('rearm.unit_hour') }}</span>
+
+              <div
+                class="wheel" x-ref="durMinuteWheel"
+                @scroll.passive="onWheelScroll('durMinute')"
+                role="listbox" aria-label="{{ t('rearm.minutes') }}"
+              >
+                <div class="wheel-pad" aria-hidden="true"></div>
+                <template x-for="m in 60" :key="'dm' + m">
+                  <button
+                    type="button" class="wheel-item"
+                    :class="rearmDurM === m - 1 ? 'is-active' : ''"
+                    :aria-selected="rearmDurM === m - 1"
+                    role="option"
+                    @click="pickWheel('durMinute', m - 1)"
+                    x-text="String(m - 1).padStart(2, '0')"
+                  ></button>
+                </template>
+                <div class="wheel-pad" aria-hidden="true"></div>
+              </div>
+              <span class="wheel-unit" aria-hidden="true">{{ t('rearm.unit_min') }}</span>
+            </div>
+
+            <!-- One-tap shortcuts for the common delays; they move the wheels. -->
             <div class="grid grid-cols-3 gap-2">
               <template x-for="preset in rearmPresets" :key="preset">
                 <button
-                  @click="rearmMinutes = preset"
-                  class="py-2.5 rounded-xl text-sm font-semibold cursor-pointer t-smooth"
-                  :style="Number(rearmMinutes) === preset
+                  @click="pickPreset(preset)"
+                  class="py-2 rounded-xl text-xs font-semibold cursor-pointer t-smooth"
+                  :style="rearmMinutes === preset
                     ? 'background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12); border: 1px solid var(--accent); color: var(--accent)'
-                    : 'background: var(--raised); border: 1px solid var(--border-s); color: var(--text)'"
+                    : 'background: var(--raised); border: 1px solid var(--border-s); color: var(--sub)'"
                   x-text="fmtDuration(preset)"
                 ></button>
               </template>
             </div>
-            <label class="flex items-center justify-between text-sm t-text">
-              <span>{{ t('rearm.custom_minutes') }}</span>
-              <input type="number" min="1" max="10080" x-model.number="rearmMinutes"
-                     class="rounded-xl px-3 py-2 w-24 text-right" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
-            </label>
           </div>
 
           <!-- Clock time: rolls over to tomorrow when the time already passed -->

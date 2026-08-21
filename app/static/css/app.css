@@ -211,7 +211,8 @@ html.dark .btn-primary { color: #0a1a0e; }
 
 .wheel {
   position: relative;
-  flex: 0 1 92px;
+  flex: 0 1 84px;
+  min-width: 0;
   height: calc(var(--wheel-row) * 3);
   overflow-y: auto;
   scroll-snap-type: y mandatory;
@@ -249,6 +250,15 @@ html.dark .btn-primary { color: #0a1a0e; }
   color: var(--text);
   opacity: 1;
   transform: scale(1.12);
+}
+
+/* Unit caption pinned to the selected row, so a duration wheel reads "04 h 20 min". */
+.wheel-unit {
+  align-self: center;
+  padding: 0 2px 2px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
 }
 
 .wheel-sep {

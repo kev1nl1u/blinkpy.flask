@@ -53,10 +53,11 @@ function blinkApp() {
     showRearmMenu: false,       // "more options" dropdown under the toggle
     rearmOpen:     false,       // scheduling modal
     rearmMode:     'duration',  // 'duration' | 'time'
-    rearmMinutes:  30,
+    rearmDurH:     0,
+    rearmDurM:     30,
     rearmHour:     8,
     rearmMinute:   0,
-    _wheelTimers:  { hour: null, minute: null },
+    _wheelTimers:  {},
     rearmSaving:   false,
     rearmPresets:  [15, 30, 60, 120, 240, 480],
     nowTs:         Date.now(),  // ticks while a re-arm is pending, drives the countdown
@@ -133,7 +134,13 @@ function blinkApp() {
       return iso ? `${i.rearm_at} ${this.fmtRearmTarget(new Date(iso))}` : '';
     },
 
-    // The wheels are the source of truth; the rest of the flow still speaks "HH:MM".
+    // Both tabs are driven by wheels; the rest of the flow still speaks
+    // total-minutes and "HH:MM".
+    get rearmMinutes() {
+      return this.rearmDurH * 60 + this.rearmDurM;
+    },
+
+
     get rearmTime() {
       return `${String(this.rearmHour).padStart(2, '0')}:${String(this.rearmMinute).padStart(2, '0')}`;
     },
@@ -490,16 +497,25 @@ function blinkApp() {
     // One row of the wheel, in px — mirrored by --wheel-row in app.css.
     _wheelRow: 44,
 
+    _wheels: {
+      hour:      { ref: 'hourWheel',      max: 23, prop: 'rearmHour' },
+      minute:    { ref: 'minuteWheel',    max: 59, prop: 'rearmMinute' },
+      durHour:   { ref: 'durHourWheel',   max: 23, prop: 'rearmDurH' },
+      durMinute: { ref: 'durMinuteWheel', max: 59, prop: 'rearmDurM' },
+    },
+
     _wheelEl(which) {
-      return which === 'hour' ? this.$refs.hourWheel : this.$refs.minuteWheel;
+      return this.$refs[this._wheels[which].ref];
     },
 
     // Centring only works once the element has a layout box, so this runs after
     // the modal (and the tab holding the wheels) is actually visible.
     syncRearmWheels() {
+      const shown = this.rearmMode === 'time' ? ['hour', 'minute'] : ['durHour', 'durMinute'];
       this.$nextTick(() => requestAnimationFrame(() => {
-        this._scrollWheel('hour', this.rearmHour);
-        this._scrollWheel('minute', this.rearmMinute);
+        for (const which of shown) {
+          this._scrollWheel(which, this[this._wheels[which].prop]);
+        }
       }));
     },
 
@@ -516,24 +532,30 @@ function blinkApp() {
     onWheelScroll(which) {
       clearTimeout(this._wheelTimers[which]);
       this._wheelTimers[which] = setTimeout(() => {
-        const el = this._wheelEl(which);
+        const el  = this._wheelEl(which);
         if (!el) return;
-        const max = which === 'hour' ? 23 : 59;
-        const idx = Math.min(max, Math.max(0, Math.round(el.scrollTop / this._wheelRow)));
-        if (which === 'hour') this.rearmHour = idx;
-        else                  this.rearmMinute = idx;
+        const cfg = this._wheels[which];
+        const idx = Math.min(cfg.max, Math.max(0, Math.round(el.scrollTop / this._wheelRow)));
+        this[cfg.prop] = idx;
       }, 90);
     },
 
     pickWheel(which, index) {
-      if (which === 'hour') this.rearmHour = index;
-      else                  this.rearmMinute = index;
+      this[this._wheels[which].prop] = index;
       this._scrollWheel(which, index, true);
+    },
+
+    // Presets stay as one-tap shortcuts; they just move the wheels.
+    pickPreset(mins) {
+      this.rearmDurH = Math.floor(mins / 60);
+      this.rearmDurM = mins % 60;
+      this._scrollWheel('durHour', this.rearmDurH, true);
+      this._scrollWheel('durMinute', this.rearmDurM, true);
     },
 
     setRearmMode(mode) {
       this.rearmMode = mode;
-      if (mode === 'time') this.syncRearmWheels();
+      this.syncRearmWheels();
     },
 
     openRearmModal() {
@@ -541,6 +563,13 @@ function blinkApp() {
       const base = this.autoRearmAt ? new Date(this.autoRearmAt) : new Date(Date.now() + 30 * 60000);
       this.rearmHour   = base.getHours();
       this.rearmMinute = base.getMinutes();
+      // Reopening on an existing schedule: offer its remaining delay, rounded
+      // to the minute, so both tabs start from what is actually pending.
+      if (this.autoRearmAt) {
+        const mins = Math.max(1, Math.round((base - Date.now()) / 60000));
+        this.rearmDurH = Math.min(23, Math.floor(mins / 60));
+        this.rearmDurM = mins % 60;
+      }
       this.rearmOpen   = true;
       this.syncRearmWheels();
     },
