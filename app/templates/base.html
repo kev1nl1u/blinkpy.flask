@@ -76,7 +76,7 @@
     body{animation:_pgIn 0.18s ease both}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}" />
+  <link rel="stylesheet" href="{{ static_url('css/app.css') }}" />
 </head>
 <body class="min-h-dvh antialiased">
 
@@ -121,7 +121,10 @@ window.APP_I18N = {
   unit_hour:           "{{ t('rearm.unit_hour') }}",
   date_locale:         "{{ {'en': 'en-US', 'it': 'it-IT', 'zh': 'zh-CN'}.get(get_current_language(), 'en-US') }}",
 };
+// Registering a changed script URL forces the browser to take the new worker
+// even while the old /sw.js response is still fresh in an upstream cache.
+window.APP_SW_VERSION = "{{ sw_version() }}";
 </script>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ static_url('js/app.js') }}"></script>
 </body>
 </html>

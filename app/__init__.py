@@ -1,6 +1,6 @@
 import atexit
 import os
-from flask import Flask, session, request
+from flask import Flask, session, request, url_for
 from flask_session import Session
 from pathlib import Path
 from app.services.blink import service as blink_service, run_sync
@@ -32,7 +32,30 @@ def create_app():
             return best
         return 'en'
 
+    def static_url(filename):
+        """Static URL stamped with the file's mtime.
+
+        Cloudflare rewrites the origin's cache headers to a 4h browser TTL and
+        the service worker serves /static cache-first, so an unstamped URL
+        keeps an installed PWA on the previous deploy's JS. A stamped URL
+        misses both caches the moment the file changes.
+        """
+        try:
+            stamp = int((Path(app.static_folder) / filename).stat().st_mtime)
+        except OSError:
+            stamp = 0
+        return url_for('static', filename=filename, v=stamp)
+
+    def sw_version():
+        """Build stamp for the service worker script, mirrored into the page."""
+        try:
+            return int((Path(app.static_folder) / 'sw.js').stat().st_mtime)
+        except OSError:
+            return 0
+
     app.jinja_env.globals.update(
+        static_url=static_url,
+        sw_version=sw_version,
         t=lambda key: get_translation(key, get_current_language()),
         get_translation=get_translation,
         get_current_language=get_current_language,

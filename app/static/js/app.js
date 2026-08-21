@@ -717,7 +717,8 @@ function blinkApp() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    const swUrl = `/sw.js?v=${window.APP_SW_VERSION ?? ''}`;
+    navigator.serviceWorker.register(swUrl, { scope: '/' })
       .catch(err => console.warn('[SW] registration failed:', err));
   });
 }
