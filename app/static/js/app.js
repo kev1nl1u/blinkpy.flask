@@ -123,14 +123,13 @@ function blinkApp() {
     },
 
     get rearmPreviewLabel() {
-      const i = window.APP_I18N;
       if (this.rearmMode === 'duration') {
         const mins = Number(this.rearmMinutes);
         if (!(mins >= 1)) return '';
-        return `${i.rearm_at} ${this.fmtRearmTarget(new Date(Date.now() + mins * 60000))}`;
+        return this.fmtRearmTarget(new Date(Date.now() + mins * 60000));
       }
       const iso = this._rearmTimeToIso(this.rearmTime);
-      return iso ? `${i.rearm_at} ${this.fmtRearmTarget(new Date(iso))}` : '';
+      return iso ? this.fmtRearmTarget(new Date(iso)) : '';
     },
 
     // Both tabs are driven by wheels; the rest of the flow still speaks
@@ -447,15 +446,22 @@ function blinkApp() {
       return `${m}${i.unit_min}`;
     },
 
+    // Returns a whole phrase, not a fragment to be prefixed: "oggi alle 14:02"
+    // takes no article, while a bare date does ("il 23 ago alle 14:02"). Empty
+    // parts are dropped so locales that need no preposition read cleanly.
     fmtRearmTarget(date) {
-      const i      = window.APP_I18N;
-      const time   = date.toLocaleTimeString(i.date_locale, { hour: '2-digit', minute: '2-digit' });
-      const today  = new Date().toLocaleDateString(i.date_locale);
+      const i        = window.APP_I18N;
+      const time     = date.toLocaleTimeString(i.date_locale, { hour: '2-digit', minute: '2-digit' });
+      const today    = new Date().toLocaleDateString(i.date_locale);
       const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString(i.date_locale);
-      const dayKey = date.toLocaleDateString(i.date_locale);
-      if (dayKey === today)    return `${i.today.toLowerCase()} ${i.rearm_oclock} ${time}`;
-      if (dayKey === tomorrow) return `${i.tomorrow.toLowerCase()} ${i.rearm_oclock} ${time}`;
-      return `${date.toLocaleDateString(i.date_locale, { day: 'numeric', month: 'short' })} ${i.rearm_oclock} ${time}`;
+      const dayKey   = date.toLocaleDateString(i.date_locale);
+
+      let day;
+      if      (dayKey === today)    day = [i.today.toLowerCase()];
+      else if (dayKey === tomorrow) day = [i.tomorrow.toLowerCase()];
+      else    day = [i.rearm_on_date, date.toLocaleDateString(i.date_locale, { day: 'numeric', month: 'short' })];
+
+      return [...day, i.rearm_oclock, time].filter(Boolean).join(' ');
     },
 
     // Resolve "HH:MM" to the next matching instant (today, else tomorrow).
