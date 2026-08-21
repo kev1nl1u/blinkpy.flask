@@ -171,6 +171,8 @@
     "unit_min": "min",
     "unit_hour": "h",
     "scheduled": "Re-arm scheduled",
-    "cancelled": "Automatic re-arm cancelled"
+    "cancelled": "Automatic re-arm cancelled",
+    "hours": "Hours",
+    "minutes": "Minutes"
   }
 }

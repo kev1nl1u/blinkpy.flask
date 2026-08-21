@@ -171,6 +171,8 @@
     "unit_min": "分",
     "unit_hour": "小时",
     "scheduled": "已设定自动重新启用",
-    "cancelled": "已取消自动重新启用"
+    "cancelled": "已取消自动重新启用",
+    "hours": "小时",
+    "minutes": "分钟"
   }
 }

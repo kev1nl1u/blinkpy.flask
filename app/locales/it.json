@@ -171,6 +171,8 @@
     "unit_min": "min",
     "unit_hour": "h",
     "scheduled": "Riattivazione programmata",
-    "cancelled": "Riattivazione automatica annullata"
+    "cancelled": "Riattivazione automatica annullata",
+    "hours": "Ore",
+    "minutes": "Minuti"
   }
 }

@@ -306,9 +306,17 @@
       >
         <div class="w-full max-w-sm rounded-2xl p-6 space-y-5" style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
 
-          <div>
-            <p class="font-bold t-text">{{ t('rearm.modal_title') }}</p>
-            <p class="text-sm t-sub mt-1">{{ t('rearm.modal_hint') }}</p>
+          <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-accent-12"
+                 style="border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25)">
+              <svg class="w-5 h-5 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+              </svg>
+            </div>
+            <div>
+              <p class="font-bold t-text">{{ t('rearm.modal_title') }}</p>
+              <p class="text-sm t-sub mt-1">{{ t('rearm.modal_hint') }}</p>
+            </div>
           </div>
 
           <!-- Mode switch: delay vs clock time -->
@@ -327,7 +335,7 @@
               }"
             ></div>
             <button
-              @click="rearmMode = 'duration'"
+              @click="setRearmMode('duration')"
               class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer t-smooth"
               style="background: none; border: none"
               :style="{ color: rearmMode === 'duration' ? 'var(--accent)' : 'var(--sub)' }"
@@ -339,7 +347,7 @@
               {{ t('rearm.tab_duration') }}
             </button>
             <button
-              @click="rearmMode = 'time'"
+              @click="setRearmMode('time')"
               class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer t-smooth"
               style="background: none; border: none"
               :style="{ color: rearmMode === 'time' ? 'var(--accent)' : 'var(--sub)' }"
@@ -375,11 +383,49 @@
 
           <!-- Clock time: rolls over to tomorrow when the time already passed -->
           <div x-show="rearmMode === 'time'" class="space-y-3">
-            <label class="flex items-center justify-between text-sm t-text">
-              <span>{{ t('rearm.at_time') }}</span>
-              <input type="time" x-model="rearmTime"
-                     class="rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
-            </label>
+            <div class="wheel-set" role="group" aria-label="{{ t('rearm.at_time') }}">
+              <div class="wheel-band" aria-hidden="true"></div>
+
+              <div
+                class="wheel" x-ref="hourWheel"
+                @scroll.passive="onWheelScroll('hour')"
+                role="listbox" aria-label="{{ t('rearm.hours') }}"
+              >
+                <div class="wheel-pad" aria-hidden="true"></div>
+                <template x-for="h in 24" :key="'h' + h">
+                  <button
+                    type="button" class="wheel-item"
+                    :class="rearmHour === h - 1 ? 'is-active' : ''"
+                    :aria-selected="rearmHour === h - 1"
+                    role="option"
+                    @click="pickWheel('hour', h - 1)"
+                    x-text="String(h - 1).padStart(2, '0')"
+                  ></button>
+                </template>
+                <div class="wheel-pad" aria-hidden="true"></div>
+              </div>
+
+              <span class="wheel-sep" aria-hidden="true">:</span>
+
+              <div
+                class="wheel" x-ref="minuteWheel"
+                @scroll.passive="onWheelScroll('minute')"
+                role="listbox" aria-label="{{ t('rearm.minutes') }}"
+              >
+                <div class="wheel-pad" aria-hidden="true"></div>
+                <template x-for="m in 60" :key="'m' + m">
+                  <button
+                    type="button" class="wheel-item"
+                    :class="rearmMinute === m - 1 ? 'is-active' : ''"
+                    :aria-selected="rearmMinute === m - 1"
+                    role="option"
+                    @click="pickWheel('minute', m - 1)"
+                    x-text="String(m - 1).padStart(2, '0')"
+                  ></button>
+                </template>
+                <div class="wheel-pad" aria-hidden="true"></div>
+              </div>
+            </div>
           </div>
 
           <p class="text-center text-xs font-mono t-accent" x-text="rearmPreviewLabel"></p>

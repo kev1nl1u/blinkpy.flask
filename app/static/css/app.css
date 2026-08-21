@@ -181,6 +181,84 @@ html.dark .btn-primary { color: #0a1a0e; }
 .btn-primary:active    { transform: scale(0.975); opacity: 0.85; }
 .btn-primary:disabled  { opacity: 0.4; cursor: not-allowed; transform: none; }
 
+/* Time wheel — an in-app replacement for <input type="time">, whose OS picker
+   ignores the theme entirely. Snap points do the alignment; JS only reads which
+   row landed in the middle. */
+.wheel-set {
+  --wheel-row: 44px;
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  background: var(--raised);
+  border: 1px solid var(--border-s);
+}
+
+/* The lit row sits under the numbers, so the selection reads as a slot. */
+.wheel-band {
+  position: absolute;
+  top: 50%; left: 8px; right: 8px;
+  height: var(--wheel-row);
+  transform: translateY(-50%);
+  border-radius: 12px;
+  background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);
+  border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.28);
+  pointer-events: none;
+}
+
+.wheel {
+  position: relative;
+  flex: 0 1 92px;
+  height: calc(var(--wheel-row) * 3);
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  /* Rows fade out towards the rims instead of being clipped flat. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+          mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+}
+.wheel::-webkit-scrollbar { display: none; }
+
+/* Half-row padding at both ends lets the first and last value reach the centre. */
+.wheel-pad { height: var(--wheel-row); }
+
+.wheel-item {
+  display: block;
+  width: 100%;
+  height: var(--wheel-row);
+  line-height: var(--wheel-row);
+  scroll-snap-align: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 19px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sub);
+  opacity: 0.4;
+  transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s cubic-bezier(0.16,1,0.3,1);
+}
+.wheel-item.is-active {
+  color: var(--text);
+  opacity: 1;
+  transform: scale(1.12);
+}
+
+.wheel-sep {
+  align-self: center;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--sub);
+  padding-bottom: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

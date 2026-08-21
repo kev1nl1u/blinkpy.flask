@@ -54,7 +54,9 @@ function blinkApp() {
     rearmOpen:     false,       // scheduling modal
     rearmMode:     'duration',  // 'duration' | 'time'
     rearmMinutes:  30,
-    rearmTime:     '08:00',
+    rearmHour:     8,
+    rearmMinute:   0,
+    _wheelTimers:  { hour: null, minute: null },
     rearmSaving:   false,
     rearmPresets:  [15, 30, 60, 120, 240, 480],
     nowTs:         Date.now(),  // ticks while a re-arm is pending, drives the countdown
@@ -129,6 +131,11 @@ function blinkApp() {
       }
       const iso = this._rearmTimeToIso(this.rearmTime);
       return iso ? `${i.rearm_at} ${this.fmtRearmTarget(new Date(iso))}` : '';
+    },
+
+    // The wheels are the source of truth; the rest of the flow still speaks "HH:MM".
+    get rearmTime() {
+      return `${String(this.rearmHour).padStart(2, '0')}:${String(this.rearmMinute).padStart(2, '0')}`;
     },
 
     get rearmValid() {
@@ -480,11 +487,62 @@ function blinkApp() {
       }, 20000);
     },
 
+    // One row of the wheel, in px — mirrored by --wheel-row in app.css.
+    _wheelRow: 44,
+
+    _wheelEl(which) {
+      return which === 'hour' ? this.$refs.hourWheel : this.$refs.minuteWheel;
+    },
+
+    // Centring only works once the element has a layout box, so this runs after
+    // the modal (and the tab holding the wheels) is actually visible.
+    syncRearmWheels() {
+      this.$nextTick(() => requestAnimationFrame(() => {
+        this._scrollWheel('hour', this.rearmHour);
+        this._scrollWheel('minute', this.rearmMinute);
+      }));
+    },
+
+    _scrollWheel(which, index, smooth = false) {
+      const el = this._wheelEl(which);
+      if (!el) return;
+      const top = index * this._wheelRow;
+      if (smooth) el.scrollTo({ top, behavior: 'smooth' });
+      else        el.scrollTop = top;
+    },
+
+    // Settle on the row nearest the centre once the flick stops; CSS snapping
+    // handles the visual alignment, this only reads the result.
+    onWheelScroll(which) {
+      clearTimeout(this._wheelTimers[which]);
+      this._wheelTimers[which] = setTimeout(() => {
+        const el = this._wheelEl(which);
+        if (!el) return;
+        const max = which === 'hour' ? 23 : 59;
+        const idx = Math.min(max, Math.max(0, Math.round(el.scrollTop / this._wheelRow)));
+        if (which === 'hour') this.rearmHour = idx;
+        else                  this.rearmMinute = idx;
+      }, 90);
+    },
+
+    pickWheel(which, index) {
+      if (which === 'hour') this.rearmHour = index;
+      else                  this.rearmMinute = index;
+      this._scrollWheel(which, index, true);
+    },
+
+    setRearmMode(mode) {
+      this.rearmMode = mode;
+      if (mode === 'time') this.syncRearmWheels();
+    },
+
     openRearmModal() {
       this.showRearmMenu = false;
       const base = this.autoRearmAt ? new Date(this.autoRearmAt) : new Date(Date.now() + 30 * 60000);
-      this.rearmTime = `${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}`;
-      this.rearmOpen = true;
+      this.rearmHour   = base.getHours();
+      this.rearmMinute = base.getMinutes();
+      this.rearmOpen   = true;
+      this.syncRearmWheels();
     },
 
     async scheduleRearm() {
