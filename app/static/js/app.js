@@ -143,6 +143,33 @@ function blinkApp() {
       return `${String(this.rearmHour).padStart(2, '0')}:${String(this.rearmMinute).padStart(2, '0')}`;
     },
 
+    // Armed: the action is a temporary disarm. Disarmed: it only schedules the
+    // way back on. Same picker, same modal — different promise.
+    get rearmIsTemporary() {
+      return this.systemArmed === true;
+    },
+
+    get rearmRowLabel() {
+      const i = window.APP_I18N;
+      return this.rearmIsTemporary ? i.rearm_temp_disarm : i.rearm_auto;
+    },
+
+    get rearmTitle() {
+      const i = window.APP_I18N;
+      return this.rearmIsTemporary ? i.rearm_temp_title : i.rearm_title;
+    },
+
+    get rearmHint() {
+      const i = window.APP_I18N;
+      return this.rearmIsTemporary ? i.rearm_temp_hint : i.rearm_hint;
+    },
+
+    get rearmConfirmLabel() {
+      const i = window.APP_I18N;
+      if (this.rearmIsTemporary) return i.rearm_temp_confirm;
+      return this.autoRearmActive ? i.rearm_update : i.rearm_confirm;
+    },
+
     get rearmValid() {
       return this.rearmMode === 'duration'
         ? Number(this.rearmMinutes) >= 1
@@ -583,6 +610,8 @@ function blinkApp() {
       const body = this.rearmMode === 'duration'
         ? { minutes: Number(this.rearmMinutes) }
         : { at: this._rearmTimeToIso(this.rearmTime) };
+      const temporary = this.rearmIsTemporary;
+      body.disarm_now = temporary;
       this.rearmSaving = true;
       try {
         const res  = await fetch('/api/blink/auto-rearm', {
@@ -591,9 +620,15 @@ function blinkApp() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? window.APP_I18N.error_connection);
+        if (data.armed !== undefined && data.armed !== null) {
+          this.systemArmed = data.armed;
+          this.lastUpdated = new Date().toLocaleTimeString(window.APP_I18N.date_locale, { hour: '2-digit', minute: '2-digit' });
+        }
         this._syncRearm(data.auto_rearm);
         this.rearmOpen = false;
-        this.showToast(`${window.APP_I18N.rearm_scheduled} ${this.autoRearmLabel}`, 'success');
+        const i = window.APP_I18N;
+        const lead = temporary ? i.rearm_temp_done : i.rearm_scheduled;
+        this.showToast(`${lead} ${this.autoRearmLabel}`, 'success');
       } catch (err) {
         this.showToast(err.message ?? window.APP_I18N.error_connection, 'error');
       } finally {

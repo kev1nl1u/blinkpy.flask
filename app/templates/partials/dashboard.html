@@ -314,8 +314,8 @@
               </svg>
             </div>
             <div>
-              <p class="font-bold t-text">{{ t('rearm.modal_title') }}</p>
-              <p class="text-sm t-sub mt-1">{{ t('rearm.modal_hint') }}</p>
+              <p class="font-bold t-text" x-text="rearmTitle"></p>
+              <p class="text-sm t-sub mt-1" x-text="rearmHint"></p>
             </div>
           </div>
 
@@ -498,7 +498,7 @@
               style="background: var(--raised); border: 1px solid var(--border-s)"
             >
               <div x-show="rearmSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
-              <span x-text="autoRearmActive ? '{{ t('rearm.update') }}' : '{{ t('rearm.confirm') }}'"></span>
+              <span x-text="rearmConfirmLabel"></span>
             </button>
           </div>
         </div>
@@ -766,10 +766,11 @@
                 </div>
 
                 <!-- ── AUTO RE-ARM ──────────────────────────────────
-                     Only offered while the system is off: it exists to undo a
-                     temporary disarm. A pending re-arm replaces the row with
-                     its own state, so the countdown is always visible. -->
-                <template x-if="blinkConnected && !systemArmed">
+                     Armed, this is "disarm temporarily": off now, back on by
+                     itself. Disarmed, it only schedules the way back on. A
+                     pending re-arm replaces the row with its own state, so the
+                     countdown is always visible. -->
+                <template x-if="blinkConnected">
                   <div>
                     <!-- Pending: target instant + countdown + cancel -->
                     <template x-if="autoRearmActive">
@@ -814,7 +815,7 @@
                         <svg class="w-4 h-4 flex-shrink-0 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                         </svg>
-                        <span class="flex-1 text-sm font-medium t-text">{{ t('rearm.auto_rearm') }}</span>
+                        <span class="flex-1 text-sm font-medium t-text" x-text="rearmRowLabel"></span>
                         <svg class="w-4 h-4 flex-shrink-0 t-sub" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                         </svg>

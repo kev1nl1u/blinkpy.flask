@@ -267,6 +267,12 @@ def set_auto_rearm():
     Body takes either ``{"minutes": N}`` (relative delay) or ``{"at": ISO}``
     — the browser sends an absolute instant with its own UTC offset, so the
     server never has to guess the user's timezone.
+
+    ``{"disarm_now": true}`` turns the call into a temporary disarm: the
+    system goes off immediately and comes back at the scheduled instant. The
+    disarm runs before the schedule is stored, so a failure to reach Blink
+    leaves nothing pending rather than promising a re-arm for a system that
+    never went off.
     """
     settings  = current_app.extensions.get("settings")
     scheduler = current_app.extensions.get("scheduler")
@@ -276,10 +282,24 @@ def set_auto_rearm():
     data = request.get_json(silent=True) or {}
     try:
         run_at = rearm.compute_run_at(minutes=data.get("minutes"), at=data.get("at"))
-        rearm.store(settings, scheduler, run_at)
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-    return jsonify({"ok": True, "auto_rearm": _rearm_state()}), 200
+
+    armed = None
+    if data.get("disarm_now"):
+        blink_service = current_app.extensions.get("blink_service")
+        if not blink_service or not blink_service.started:
+            return jsonify({"error": "Blink service not connected"}), 400
+        try:
+            armed = _arm_modules(blink_service.blink, False)
+        except BlinkTwoFARequiredError:
+            blink_service.awaiting_2fa = True
+            return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
+        except Exception as e:
+            return jsonify({"error": f"Failed to disarm: {str(e)}"}), 500
+
+    rearm.store(settings, scheduler, run_at)
+    return jsonify({"ok": True, "armed": armed, "auto_rearm": _rearm_state()}), 200
 
 
 @bp.route('/blink/auto-rearm', methods=['DELETE'])
