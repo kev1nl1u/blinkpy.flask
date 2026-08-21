@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -14,6 +15,10 @@ DEFAULTS = {
     "motion_download": {
         "enabled": False,
         "interval_minutes": 2,
+    },
+    # One-shot auto re-arm: ISO-8601 instant, or None when nothing is pending.
+    "auto_rearm": {
+        "at": None,
     },
 }
 
@@ -40,6 +45,8 @@ class Settings:
         merged["motion_download"].update(
             {k: md[k] for k in ("enabled", "interval_minutes") if k in md}
         )
+        ar = data.get("auto_rearm", {})
+        merged["auto_rearm"].update({k: ar[k] for k in ("at",) if k in ar})
         return merged
 
     def validate(self, cfg):
@@ -66,6 +73,16 @@ class Settings:
                 raise ValueError(
                     f"invalid interval_minutes: {interval!r} (expected int 1-60)"
                 )
+
+        ar = cfg.get("auto_rearm")
+        if ar is not None:
+            at = ar.get("at")
+            if at is not None:
+                try:
+                    from app.services.rearm import parse_at
+                    parse_at(at)
+                except ValueError:
+                    raise ValueError(f"invalid auto_rearm.at: {at!r} (expected ISO-8601)")
 
     def save(self, cfg):
         self.validate(cfg)

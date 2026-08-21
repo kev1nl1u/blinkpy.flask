@@ -14,7 +14,8 @@ def test_save_load_roundtrip(tmp_path):
         "motion_download": {"enabled": True, "interval_minutes": 3},
     }
     s.save(cfg)
-    assert s.load() == cfg
+    # load() backfills sections the saved file never mentioned.
+    assert s.load() == {**cfg, "auto_rearm": {"at": None}}
 
 
 def test_validate_rejects_bad_interval(tmp_path):

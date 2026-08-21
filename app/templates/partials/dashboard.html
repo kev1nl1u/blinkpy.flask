@@ -291,6 +291,133 @@
         </div>
       </div>
 
+      <!-- Auto re-arm modal: pick a delay, or a clock time -->
+      <div
+        x-show="rearmOpen" x-cloak
+        x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center px-5 modal-bg"
+        @keydown.escape.window="!rearmSaving && (rearmOpen = false)"
+        role="dialog" aria-modal="true"
+      >
+        <div class="w-full max-w-sm rounded-2xl p-6 space-y-5" style="background: var(--surface); border: 1px solid var(--border-s); box-shadow: 0 24px 64px rgba(0,0,0,0.5)">
+
+          <div>
+            <p class="font-bold t-text">{{ t('rearm.modal_title') }}</p>
+            <p class="text-sm t-sub mt-1">{{ t('rearm.modal_hint') }}</p>
+          </div>
+
+          <!-- Mode switch: delay vs clock time -->
+          <div
+            class="relative flex rounded-2xl p-1"
+            style="background: var(--raised)"
+            role="group" aria-label="{{ t('rearm.mode_label') }}"
+          >
+            <div
+              class="pill-anim absolute top-1 bottom-1 w-[calc(50%-6px)] rounded-xl pointer-events-none"
+              :style="{
+                left: rearmMode === 'duration' ? '4px' : 'calc(50% + 2px)',
+                background: 'var(--surface)',
+                boxShadow: '0 1px 4px var(--shadow)',
+                border: '1px solid var(--border-s)',
+              }"
+            ></div>
+            <button
+              @click="rearmMode = 'duration'"
+              class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer t-smooth"
+              style="background: none; border: none"
+              :style="{ color: rearmMode === 'duration' ? 'var(--accent)' : 'var(--sub)' }"
+              :aria-pressed="rearmMode === 'duration'"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              {{ t('rearm.tab_duration') }}
+            </button>
+            <button
+              @click="rearmMode = 'time'"
+              class="relative z-10 flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold cursor-pointer t-smooth"
+              style="background: none; border: none"
+              :style="{ color: rearmMode === 'time' ? 'var(--accent)' : 'var(--sub)' }"
+              :aria-pressed="rearmMode === 'time'"
+            >
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              {{ t('rearm.tab_time') }}
+            </button>
+          </div>
+
+          <!-- Delay: presets + free minutes -->
+          <div x-show="rearmMode === 'duration'" class="space-y-3">
+            <div class="grid grid-cols-3 gap-2">
+              <template x-for="preset in rearmPresets" :key="preset">
+                <button
+                  @click="rearmMinutes = preset"
+                  class="py-2.5 rounded-xl text-sm font-semibold cursor-pointer t-smooth"
+                  :style="Number(rearmMinutes) === preset
+                    ? 'background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12); border: 1px solid var(--accent); color: var(--accent)'
+                    : 'background: var(--raised); border: 1px solid var(--border-s); color: var(--text)'"
+                  x-text="fmtDuration(preset)"
+                ></button>
+              </template>
+            </div>
+            <label class="flex items-center justify-between text-sm t-text">
+              <span>{{ t('rearm.custom_minutes') }}</span>
+              <input type="number" min="1" max="10080" x-model.number="rearmMinutes"
+                     class="rounded-xl px-3 py-2 w-24 text-right" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+            </label>
+          </div>
+
+          <!-- Clock time: rolls over to tomorrow when the time already passed -->
+          <div x-show="rearmMode === 'time'" class="space-y-3">
+            <label class="flex items-center justify-between text-sm t-text">
+              <span>{{ t('rearm.at_time') }}</span>
+              <input type="time" x-model="rearmTime"
+                     class="rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s); color: var(--text)">
+            </label>
+          </div>
+
+          <p class="text-center text-xs font-mono t-accent" x-text="rearmPreviewLabel"></p>
+
+          <!-- Replacing an existing schedule: offer to drop it instead -->
+          <button
+            x-show="autoRearmActive"
+            @click="cancelRearm()"
+            :disabled="rearmSaving"
+            class="w-full text-xs font-semibold cursor-pointer py-1"
+            style="background: none; border: none; color: var(--danger)"
+          >
+            {{ t('rearm.remove') }}
+          </button>
+
+          <div class="flex gap-3 pt-1">
+            <button
+              @click="rearmOpen = false"
+              :disabled="rearmSaving"
+              class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer t-sub"
+              style="background: transparent; border: none"
+            >
+              {{ t('dashboard.cancel') }}
+            </button>
+            <button
+              @click="scheduleRearm()"
+              :disabled="rearmSaving || !rearmValid"
+              class="flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer flex items-center justify-center gap-2"
+              :class="{ 'opacity-60': rearmSaving || !rearmValid }"
+              style="background: var(--raised); border: 1px solid var(--border-s)"
+            >
+              <div x-show="rearmSaving" class="w-4 h-4 rounded-full animate-spin" style="border:2px solid var(--border-s); border-top-color:var(--accent)"></div>
+              <span x-text="autoRearmActive ? '{{ t('rearm.update') }}' : '{{ t('rearm.confirm') }}'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Command queue modal -->
       <div
         x-show="queueOpen" x-cloak
@@ -352,6 +479,11 @@
                 <span class="text-sm t-text">{{ t('queue.motion') }}</span>
                 <span class="text-xs font-mono t-sub"
                       x-text="queue.scheduled?.motion?.enabled ? fmtNextRun(queue.scheduled.motion.next_run) : '{{ t('queue.off') }}'"></span>
+              </div>
+              <div class="flex items-center justify-between rounded-xl px-3 py-2" style="background: var(--raised); border: 1px solid var(--border-s)">
+                <span class="text-sm t-text">{{ t('rearm.pill_title') }}</span>
+                <span class="text-xs font-mono t-sub"
+                      x-text="queue.scheduled?.rearm?.enabled ? fmtNextRun(queue.scheduled.rearm.next_run) : '{{ t('queue.off') }}'"></span>
               </div>
             </div>
           </div>
@@ -546,6 +678,95 @@
                     {{ t('dashboard.enable_system') }}
                   </button>
                 </div>
+
+                <!-- ── AUTO RE-ARM ──────────────────────────────────
+                     Only offered while the system is off: it exists to undo a
+                     temporary disarm. A pending re-arm replaces the trigger
+                     with its own state row, so the countdown is always visible. -->
+                <template x-if="blinkConnected && !systemArmed">
+                  <div>
+                    <!-- Pending: target instant + countdown + cancel -->
+                    <template x-if="autoRearmActive">
+                      <div
+                        class="flex items-center gap-2.5 rounded-2xl px-3 py-2.5 bg-accent-12"
+                        style="border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25)"
+                      >
+                        <svg class="w-4 h-4 flex-shrink-0 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        <button
+                          @click="openRearmModal()"
+                          class="flex-1 min-w-0 text-left cursor-pointer"
+                          style="background:none; border:none; padding:0"
+                          :aria-label="'{{ t('rearm.edit_label') }}'"
+                        >
+                          <p class="text-[10px] font-medium uppercase tracking-widest t-sub font-mono truncate">{{ t('rearm.pill_title') }}</p>
+                          <p class="text-sm font-semibold t-text truncate" x-text="autoRearmLabel"></p>
+                        </button>
+                        <span class="text-xs font-mono font-bold t-accent flex-shrink-0" x-text="autoRearmCountdown"></span>
+                        <button
+                          @click="cancelRearm()"
+                          :disabled="rearmSaving"
+                          class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 cursor-pointer t-sub"
+                          style="background: var(--raised); border: 1px solid var(--border-s)"
+                          :aria-label="'{{ t('rearm.remove') }}'"
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.4" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </template>
+
+                    <!-- Idle: text-only "more options" trigger + its menu -->
+                    <template x-if="!autoRearmActive">
+                      <div @click.outside="showRearmMenu = false">
+                        <!-- Sits under the "off" half of the toggle it belongs to -->
+                        <div class="w-1/2 flex justify-center">
+                          <button
+                            @click="showRearmMenu = !showRearmMenu"
+                            class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium t-sub cursor-pointer t-smooth"
+                            style="background: none; border: none"
+                            :style="showRearmMenu ? 'color: var(--text)' : ''"
+                            :aria-expanded="showRearmMenu"
+                          >
+                            {{ t('rearm.more_options') }}
+                            <svg class="w-3 h-3 t-smooth" :style="showRearmMenu ? 'transform: rotate(180deg)' : ''" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+                          </button>
+                        </div>
+
+                        <!-- Expands in flow: the status card clips overflow, so an
+                             absolutely positioned menu would be cut off. -->
+                        <div
+                          x-show="showRearmMenu"
+                          x-transition:enter="transition ease-[cubic-bezier(0.16,1,0.3,1)] duration-200"
+                          x-transition:enter-start="opacity-0 -translate-y-1"
+                          x-transition:enter-end="opacity-100 translate-y-0"
+                          x-transition:leave="transition ease-in duration-120"
+                          x-transition:leave-start="opacity-100"
+                          x-transition:leave-end="opacity-0"
+                          class="mt-2 rounded-2xl overflow-hidden"
+                          style="background: var(--raised); border: 1px solid var(--border-s)"
+                          role="menu"
+                        >
+                          <button
+                            @click="openRearmModal()"
+                            class="w-full flex items-center gap-2.5 px-4 py-3 text-sm font-medium t-text cursor-pointer text-left"
+                            style="background: none; border: none"
+                            role="menuitem"
+                          >
+                            <svg class="w-4 h-4 flex-shrink-0 t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                            {{ t('rearm.auto_rearm') }}
+                          </button>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
 
                 <p x-show="!blinkConnected && !statusLoading" class="text-center text-xs t-sub">
                   {{ t('dashboard.not_connected') }}

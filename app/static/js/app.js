@@ -48,6 +48,18 @@ function blinkApp() {
     isIos:          false,
     showIosInstall: false,
 
+    // Auto re-arm (arm the system again by itself, later)
+    autoRearmAt:   null,        // ISO instant of the pending re-arm, or null
+    showRearmMenu: false,       // "more options" dropdown under the toggle
+    rearmOpen:     false,       // scheduling modal
+    rearmMode:     'duration',  // 'duration' | 'time'
+    rearmMinutes:  30,
+    rearmTime:     '08:00',
+    rearmSaving:   false,
+    rearmPresets:  [15, 30, 60, 120, 240, 480],
+    nowTs:         Date.now(),  // ticks while a re-arm is pending, drives the countdown
+    _rearmTimer:   null,
+
     // Logo menu / reset modal
     showLogoMenu:  false,
     showResetModal: false,
@@ -89,6 +101,40 @@ function blinkApp() {
       if (this.systemArmed === true)  return i.status_armed;
       if (this.systemArmed === false) return i.status_disarmed;
       return i.status_unknown;
+    },
+
+    get autoRearmActive() {
+      return !!this.autoRearmAt;
+    },
+
+    // "oggi alle 22:30" / "domani alle 07:00" — the day matters when the
+    // re-arm crosses midnight, which the time picker makes easy to do.
+    get autoRearmLabel() {
+      return this.autoRearmAt ? this.fmtRearmTarget(new Date(this.autoRearmAt)) : '';
+    },
+
+    // Remaining time, recomputed from nowTs so Alpine re-renders on each tick.
+    get autoRearmCountdown() {
+      if (!this.autoRearmAt) return '';
+      const mins = Math.round((new Date(this.autoRearmAt) - this.nowTs) / 60000);
+      return mins <= 0 ? window.APP_I18N.rearm_soon : this.fmtDuration(mins);
+    },
+
+    get rearmPreviewLabel() {
+      const i = window.APP_I18N;
+      if (this.rearmMode === 'duration') {
+        const mins = Number(this.rearmMinutes);
+        if (!(mins >= 1)) return '';
+        return `${i.rearm_at} ${this.fmtRearmTarget(new Date(Date.now() + mins * 60000))}`;
+      }
+      const iso = this._rearmTimeToIso(this.rearmTime);
+      return iso ? `${i.rearm_at} ${this.fmtRearmTarget(new Date(iso))}` : '';
+    },
+
+    get rearmValid() {
+      return this.rearmMode === 'duration'
+        ? Number(this.rearmMinutes) >= 1
+        : !!this._rearmTimeToIso(this.rearmTime);
     },
 
     get videosByDate() {
@@ -145,6 +191,7 @@ function blinkApp() {
         this.blinkConnected  = data.blink_connected ?? false;
         this.systemArmed     = data.armed           ?? null;
         this.awaiting2FA     = data.awaiting_2fa    ?? false;
+        this._syncRearm(data.auto_rearm);
         this.needsBlinkLogin = !data.blink_connected && !data.awaiting_2fa;
         this.lastUpdated     = new Date().toLocaleTimeString(window.APP_I18N.date_locale, { hour: '2-digit', minute: '2-digit' });
         if (this.awaiting2FA) {
@@ -168,6 +215,8 @@ function blinkApp() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? window.APP_I18N.error_connection);
         this.systemArmed = data.armed ?? !this.systemArmed;
+        // Arming by hand cancels a pending re-arm server-side; mirror that here.
+        this._syncRearm(data.auto_rearm);
         this.lastUpdated = new Date().toLocaleTimeString(window.APP_I18N.date_locale, { hour: '2-digit', minute: '2-digit' });
         this.showToast(this.systemArmed ? window.APP_I18N.system_armed : window.APP_I18N.system_disarmed, 'success');
       } catch (err) {
@@ -372,6 +421,110 @@ function blinkApp() {
         this.showToast(err.message ?? 'Errore', 'error');
       } finally {
         this.settingsSaving = false;
+      }
+    },
+
+    // ── Auto re-arm ───────────────────────────────────────────────
+    fmtDuration(mins) {
+      const i = window.APP_I18N;
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      if (h && m) return `${h}${i.unit_hour} ${m}${i.unit_min}`;
+      if (h)      return `${h}${i.unit_hour}`;
+      return `${m}${i.unit_min}`;
+    },
+
+    fmtRearmTarget(date) {
+      const i      = window.APP_I18N;
+      const time   = date.toLocaleTimeString(i.date_locale, { hour: '2-digit', minute: '2-digit' });
+      const today  = new Date().toLocaleDateString(i.date_locale);
+      const tomorrow = new Date(Date.now() + 864e5).toLocaleDateString(i.date_locale);
+      const dayKey = date.toLocaleDateString(i.date_locale);
+      if (dayKey === today)    return `${i.today.toLowerCase()} ${i.rearm_oclock} ${time}`;
+      if (dayKey === tomorrow) return `${i.tomorrow.toLowerCase()} ${i.rearm_oclock} ${time}`;
+      return `${date.toLocaleDateString(i.date_locale, { day: 'numeric', month: 'short' })} ${i.rearm_oclock} ${time}`;
+    },
+
+    // Resolve "HH:MM" to the next matching instant (today, else tomorrow).
+    _rearmTimeToIso(hhmm) {
+      const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm ?? '');
+      if (!m) return null;
+      const h = Number(m[1]), min = Number(m[2]);
+      if (h > 23 || min > 59) return null;
+      const d = new Date();
+      d.setHours(h, min, 0, 0);
+      // A time already gone today (or within the next minute) means tomorrow.
+      if (d.getTime() <= Date.now() + 60000) d.setDate(d.getDate() + 1);
+      return d.toISOString();
+    },
+
+    _syncRearm(payload) {
+      this.autoRearmAt = payload?.at ?? null;
+      this.nowTs       = Date.now();
+      this._rearmTicker();
+    },
+
+    // Run a ticker only while something is pending, so an idle dashboard has
+    // no timers going.
+    _rearmTicker() {
+      if (this._rearmTimer) { clearInterval(this._rearmTimer); this._rearmTimer = null; }
+      if (!this.autoRearmAt) return;
+      this._rearmTimer = setInterval(() => {
+        this.nowTs = Date.now();
+        if (new Date(this.autoRearmAt) - this.nowTs > 0) return;
+        // The instant passed: the server arms through its own scheduler, so
+        // give it a moment and then re-read the real state.
+        this.autoRearmAt = null;
+        this._rearmTicker();
+        setTimeout(() => this.fetchStatus(), 6000);
+      }, 20000);
+    },
+
+    openRearmModal() {
+      this.showRearmMenu = false;
+      const base = this.autoRearmAt ? new Date(this.autoRearmAt) : new Date(Date.now() + 30 * 60000);
+      this.rearmTime = `${String(base.getHours()).padStart(2, '0')}:${String(base.getMinutes()).padStart(2, '0')}`;
+      this.rearmOpen = true;
+    },
+
+    async scheduleRearm() {
+      if (this.rearmSaving || !this.rearmValid) return;
+      const body = this.rearmMode === 'duration'
+        ? { minutes: Number(this.rearmMinutes) }
+        : { at: this._rearmTimeToIso(this.rearmTime) };
+      this.rearmSaving = true;
+      try {
+        const res  = await fetch('/api/blink/auto-rearm', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? window.APP_I18N.error_connection);
+        this._syncRearm(data.auto_rearm);
+        this.rearmOpen = false;
+        this.showToast(`${window.APP_I18N.rearm_scheduled} ${this.autoRearmLabel}`, 'success');
+      } catch (err) {
+        this.showToast(err.message ?? window.APP_I18N.error_connection, 'error');
+      } finally {
+        this.rearmSaving = false;
+      }
+    },
+
+    async cancelRearm() {
+      if (this.rearmSaving) return;
+      this.rearmSaving = true;
+      try {
+        const res  = await fetch('/api/blink/auto-rearm', { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? window.APP_I18N.error_connection);
+        this._syncRearm(data.auto_rearm);
+        this.rearmOpen     = false;
+        this.showRearmMenu = false;
+        this.showToast(window.APP_I18N.rearm_cancelled, 'info');
+      } catch (err) {
+        this.showToast(err.message ?? window.APP_I18N.error_connection, 'error');
+      } finally {
+        this.rearmSaving = false;
       }
     },
 

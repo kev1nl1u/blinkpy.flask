@@ -148,5 +148,29 @@
   },
   "language": {
     "select": "语言"
+  },
+  "rearm": {
+    "more_options": "更多选项",
+    "auto_rearm": "自动重新启用",
+    "modal_title": "自动重新启用",
+    "modal_hint": "系统将在你选择的时间自动重新启用。",
+    "mode_label": "重新启用方式",
+    "tab_duration": "多久之后",
+    "tab_time": "指定时间",
+    "custom_minutes": "自定义分钟",
+    "at_time": "时间",
+    "confirm": "设定",
+    "update": "更新",
+    "remove": "取消重新启用",
+    "pill_title": "自动重新启用",
+    "edit_label": "修改自动重新启用",
+    "at": "于",
+    "oclock": "",
+    "soon": "即将",
+    "tomorrow": "明天",
+    "unit_min": "分",
+    "unit_hour": "小时",
+    "scheduled": "已设定自动重新启用",
+    "cancelled": "已取消自动重新启用"
   }
 }

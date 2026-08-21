@@ -55,12 +55,14 @@ def create_app():
     from app.services.scheduler import DownloadScheduler
     from app.services.blink.bulk import run_bulk_download
     from app.services.blink.motion import run_motion_poll
+    from app.services.rearm import run_auto_rearm
 
     settings = Settings("settings.json")
     app.extensions["settings"] = settings
     scheduler = DownloadScheduler(
         job=lambda: run_bulk_download(blink_service),
         motion_job=lambda: run_motion_poll(blink_service),
+        rearm_job=lambda: run_auto_rearm(blink_service, settings),
     )
     atexit.register(scheduler.shutdown)
     scheduler.apply(settings.load())

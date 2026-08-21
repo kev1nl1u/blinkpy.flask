@@ -148,5 +148,29 @@
   },
   "language": {
     "select": "Language"
+  },
+  "rearm": {
+    "more_options": "More options",
+    "auto_rearm": "Re-arm automatically",
+    "modal_title": "Automatic re-arm",
+    "modal_hint": "The system arms itself again at the moment you pick.",
+    "mode_label": "Re-arm mode",
+    "tab_duration": "After a while",
+    "tab_time": "At a time",
+    "custom_minutes": "Custom minutes",
+    "at_time": "Time",
+    "confirm": "Schedule",
+    "update": "Update",
+    "remove": "Remove re-arm",
+    "pill_title": "Automatic re-arm",
+    "edit_label": "Edit automatic re-arm",
+    "at": "on",
+    "oclock": "at",
+    "soon": "any moment",
+    "tomorrow": "Tomorrow",
+    "unit_min": "min",
+    "unit_hour": "h",
+    "scheduled": "Re-arm scheduled",
+    "cancelled": "Automatic re-arm cancelled"
   }
 }

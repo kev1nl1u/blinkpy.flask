@@ -1,7 +1,7 @@
 // Static assets are served cache-first with no per-file hash, so the version
 // suffix is the only way an updated app.js/css reaches an installed client.
-const SHELL_CACHE  = 'blink-shell-v3';
-const STATIC_CACHE = 'blink-static-v3';
+const SHELL_CACHE  = 'blink-shell-v4';
+const STATIC_CACHE = 'blink-static-v4';
 
 const SHELL_URLS = ['/'];
 

@@ -1,5 +1,6 @@
 import shutil
 from datetime import datetime
+from app.services import rearm
 from app.services.blink import run_sync
 from app.services.blink.downloads import read_clip_meta
 from pathlib import Path
@@ -47,6 +48,7 @@ def get_status():
         "blink_connected": blink_ready,
         "awaiting_2fa":    awaiting_2fa,
         "armed":           armed,
+        "auto_rearm":      _rearm_state(),
     })
 
 
@@ -206,7 +208,12 @@ def blink_arm():
         data        = request.get_json(silent=True) or {}
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, True, module_name)
-        return jsonify({"ok": True, "armed": armed}), 200
+        # Arming by hand fulfils any pending re-arm: drop it so the UI does not
+        # keep showing a countdown for something already done.
+        settings = current_app.extensions.get("settings")
+        if settings:
+            rearm.clear(settings, current_app.extensions.get("scheduler"))
+        return jsonify({"ok": True, "armed": armed, "auto_rearm": _rearm_state()}), 200
     except BlinkTwoFARequiredError:
         blink_service.awaiting_2fa = True
         return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
@@ -226,7 +233,7 @@ def blink_disarm():
         data        = request.get_json(silent=True) or {}
         module_name = data.get("module")
         armed       = _arm_modules(blink_service.blink, False, module_name)
-        return jsonify({"ok": True, "armed": armed}), 200
+        return jsonify({"ok": True, "armed": armed, "auto_rearm": _rearm_state()}), 200
     except BlinkTwoFARequiredError:
         blink_service.awaiting_2fa = True
         return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
@@ -235,6 +242,56 @@ def blink_disarm():
     except Exception as e:
         return jsonify({"error": f"Failed to disarm: {str(e)}"}), 500
 
+
+
+def _rearm_state():
+    """Pending auto re-arm as {at, seconds_remaining}; empty when unavailable."""
+    settings = current_app.extensions.get("settings")
+    if not settings:
+        return {"at": None, "seconds_remaining": None}
+    return rearm.state(settings)
+
+
+@bp.route('/blink/auto-rearm', methods=['GET'])
+@login_required
+def get_auto_rearm():
+    """Return the pending auto re-arm, if any."""
+    return jsonify({"ok": True, "auto_rearm": _rearm_state()}), 200
+
+
+@bp.route('/blink/auto-rearm', methods=['POST'])
+@login_required
+def set_auto_rearm():
+    """Schedule a one-shot re-arm.
+
+    Body takes either ``{"minutes": N}`` (relative delay) or ``{"at": ISO}``
+    — the browser sends an absolute instant with its own UTC offset, so the
+    server never has to guess the user's timezone.
+    """
+    settings  = current_app.extensions.get("settings")
+    scheduler = current_app.extensions.get("scheduler")
+    if not settings:
+        return jsonify({"error": "Settings not available"}), 500
+
+    data = request.get_json(silent=True) or {}
+    try:
+        run_at = rearm.compute_run_at(minutes=data.get("minutes"), at=data.get("at"))
+        rearm.store(settings, scheduler, run_at)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True, "auto_rearm": _rearm_state()}), 200
+
+
+@bp.route('/blink/auto-rearm', methods=['DELETE'])
+@login_required
+def delete_auto_rearm():
+    """Cancel the pending auto re-arm."""
+    settings  = current_app.extensions.get("settings")
+    scheduler = current_app.extensions.get("scheduler")
+    if not settings:
+        return jsonify({"error": "Settings not available"}), 500
+    rearm.clear(settings, scheduler)
+    return jsonify({"ok": True, "auto_rearm": _rearm_state()}), 200
 
 
 @bp.route('/settings', methods=['GET'])
