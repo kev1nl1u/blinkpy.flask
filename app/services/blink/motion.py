@@ -13,6 +13,7 @@ is *armed* — the sole state in which motion can produce a recording.
 """
 
 from app.services.blink import downloads
+from app.services.blink.manifest import prune_manifest
 
 # In-memory high-water mark: newest clip `created_at` already seen, per module.
 # Reset on process restart; the first poll after a restart seeds it without
@@ -49,7 +50,7 @@ def run_motion_poll(service):
         except Exception:
             continue
 
-        manifest = mod._local_storage.get("manifest", []) or []
+        manifest = prune_manifest(mod)
         manifest_id = mod._local_storage.get("last_manifest_id")
         if not manifest_id or not manifest:
             continue

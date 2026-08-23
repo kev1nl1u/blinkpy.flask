@@ -277,10 +277,14 @@ function blinkApp() {
         const seen = new Set();
         this.videos = (data.videos ?? [])
           .map(v => ({ ...this._mapVideo(v), state: 'local' }))
-          .filter(v => { if (seen.has(v.id)) return false; seen.add(v.id); return true; });
-        const localIds = new Set(this.videos.map(v => v.id));
+          .filter(v => {
+            const key = this._clipKey(v);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
         for (const v of inFlight) {
-          if (!localIds.has(v.id)) this.videos.push(v);
+          if (!seen.has(this._clipKey(v))) this.videos.push(v);
         }
         this.videosFetched = true;
       } catch (err) {
@@ -293,6 +297,15 @@ function blinkApp() {
       if (this.blinkConnected) {
         this.fetchRemoteClips();
       }
+    },
+
+    // A recording is identified by camera + instant, never by clip id: Blink
+    // re-issues ids when it rebuilds the manifest, so a downloaded clip and
+    // its manifest entry stop sharing one. Second resolution, because a clip
+    // with no sidecar falls back to the file mtime.
+    _clipKey(v) {
+      const t = new Date(v.created_at).getTime();
+      return Number.isFinite(t) ? `${v.camera_name}|${Math.round(t / 1000)}` : `id|${v.id}`;
     },
 
     _mapVideo(v) {
@@ -315,10 +328,14 @@ function blinkApp() {
         const res  = await fetch('/api/blink/local/remote');
         const data = await res.json();
         if (!res.ok) return;
-        const localIds = new Set(this.videos.map(v => v.id));
-        const remotes = (data.clips ?? [])
-          .filter(c => !localIds.has(c.id))
-          .map(c => ({ ...this._mapVideo(c), state: 'remote' }));
+        const known = new Set(this.videos.map(v => this._clipKey(v)));
+        const remotes = [];
+        for (const c of data.clips ?? []) {
+          const key = this._clipKey(c);
+          if (known.has(key)) continue;   // already on disk, or already listed
+          known.add(key);
+          remotes.push({ ...this._mapVideo(c), state: 'remote' });
+        }
         this.videos = [...this.videos, ...remotes]
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       } catch (err) {
@@ -350,7 +367,8 @@ function blinkApp() {
         try {
           const res  = await fetch('/api/local-videos');
           const data = await res.json();
-          const found = (data.videos ?? []).find(v => v.id === video.id);
+          const key   = this._clipKey(video);
+          const found = (data.videos ?? []).find(v => this._clipKey(v) === key);
           if (found) {
             Object.assign(video, this._mapVideo(found), { state: 'local' });
           } else {

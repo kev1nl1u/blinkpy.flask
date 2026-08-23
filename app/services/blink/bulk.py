@@ -1,4 +1,5 @@
 from app.services.blink import downloads
+from app.services.blink.manifest import prune_manifest
 
 
 def run_bulk_download(service):
@@ -20,7 +21,7 @@ def run_bulk_download(service):
             return mod.update_local_storage_manifest()
         service.submit(1, _refresh, timeout=300, label="manifest")
 
-        manifest = mod._local_storage.get("manifest", [])
+        manifest = prune_manifest(mod)
         manifest_id = mod._local_storage.get("last_manifest_id")
         if not manifest_id:
             continue

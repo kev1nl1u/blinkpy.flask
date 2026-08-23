@@ -2,6 +2,7 @@ import shutil
 from datetime import datetime
 from app.services import rearm
 from app.services.blink import run_sync
+from app.services.blink.manifest import prune_manifest
 from app.services.blink.downloads import read_clip_meta
 from pathlib import Path
 from app.api import bp
@@ -458,8 +459,7 @@ def get_remote_clips():
             blink_service.submit(1, _refresh, timeout=120, label="manifest")
         except Exception:
             continue
-        manifest = getattr(mod, "_local_storage", {}).get("manifest", [])
-        for item in manifest:
+        for item in prune_manifest(mod):
             clips.append({
                 "id": str(item.id),
                 "module": mod_name,

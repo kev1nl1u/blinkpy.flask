@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from app.services.blink import bulk
 
@@ -6,9 +7,13 @@ def test_bulk_enqueues_manifest_then_clips(monkeypatch):
     submitted = []
 
     class FakeItem:
-        def __init__(self, id): self.id = id
+        # name/created_at are what identifies a clip once ids rotate
+        def __init__(self, id, offset=0):
+            self.id = id
+            self.name = "Retro"
+            self.created_at = datetime(2026, 8, 22, tzinfo=timezone.utc) + timedelta(minutes=offset)
     class FakeMod:
-        def __init__(self): self._local_storage = {"manifest": [FakeItem("a"), FakeItem("b")],
+        def __init__(self): self._local_storage = {"manifest": [FakeItem("a"), FakeItem("b", 5)],
                                                    "last_manifest_id": "m1"}
         async def update_local_storage_manifest(self): return True
     fake_blink = SimpleNamespace(sync={"mod": FakeMod()})
