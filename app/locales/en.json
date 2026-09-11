@@ -86,7 +86,9 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "download_all": "Download all clips",
-    "download_all_started": "Downloads started"
+    "download_all_started": "Downloads started",
+    "theme_light": "Light theme",
+    "theme_dark": "Dark theme"
   },
   "download": {
     "updating_videos": "Updating videos",
@@ -178,5 +180,24 @@
     "unit_hour": "h",
     "unit_min": "min",
     "update": "Update"
+  },
+  "cameras": {
+    "title": "Cameras",
+    "panel_label": "Camera data",
+    "empty": "No cameras",
+    "loading": "Loading…",
+    "offline": "Blink not connected",
+    "error": "Could not load cameras",
+    "temperature": "Temperature",
+    "battery": "Battery",
+    "wifi": "Wi-Fi",
+    "sync": "Sync module",
+    "last_record": "Last motion",
+    "battery_ok": "OK",
+    "battery_low": "Low",
+    "armed": "On",
+    "disarmed": "Off",
+    "updated": "Updated",
+    "refresh": "Refresh"
   }
 }

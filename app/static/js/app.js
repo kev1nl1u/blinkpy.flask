@@ -26,6 +26,13 @@ function blinkApp() {
     settingsOpen:   false,
     settingsSaving: false,
 
+    // Camera telemetry panel (slides down under the header)
+    camerasOpen:    false,
+    cameras:        [],
+    camerasLoading: false,
+    camerasFetched: false,
+    camerasUpdated: null,
+
     // Command queue / background actions
     queueOpen:      false,
     queue:          { running: null, pending: [], scheduled: {} },
@@ -378,6 +385,60 @@ function blinkApp() {
           this._pollClip(video, attempts + 1);
         }
       }, 3000);
+    },
+
+    // ── API: Cameras ──────────────────────────────────────────────
+    toggleCameras() {
+      this.camerasOpen = !this.camerasOpen;
+      if (this.camerasOpen) this.fetchCameras();
+    },
+
+    async fetchCameras() {
+      if (this.camerasLoading) return;
+      // Nothing to ask Blink for while disconnected: mark the panel as settled
+      // so it shows the offline line instead of an endless skeleton.
+      if (!this.blinkConnected) { this.camerasFetched = true; return; }
+      this.camerasLoading = true;
+      try {
+        const res  = await fetch('/api/cameras');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        this.cameras        = data.cameras ?? [];
+        this.camerasUpdated = data.last_refresh
+          ? new Date(data.last_refresh * 1000).toLocaleTimeString(window.APP_I18N.date_locale, { hour: '2-digit', minute: '2-digit' })
+          : null;
+      } catch (err) {
+        console.error('[cameras]', err);
+        this.showToast(window.APP_I18N.cameras_error, 'error');
+      } finally {
+        this.camerasFetched = true;
+        this.camerasLoading = false;
+      }
+    },
+
+    // Blink reports temperature in Fahrenheit; the server converts, so a
+    // missing sensor stays missing instead of turning into a bogus 0.
+    camTemp(cam) {
+      return cam.temperature_c == null ? null : `${cam.temperature_c}°C`;
+    },
+
+    // Battery comes as a state word ("ok" / "low"), with the voltage only on
+    // some models — show whichever the camera actually sent.
+    camBattery(cam) {
+      const i = window.APP_I18N;
+      if (cam.battery == null) return null;
+      const state = String(cam.battery).toLowerCase();
+      if (state === 'ok')  return i.cam_battery_ok;
+      if (state === 'low') return i.cam_battery_low;
+      return String(cam.battery);
+    },
+
+    camBatteryLow(cam) {
+      return String(cam.battery ?? '').toLowerCase() === 'low';
+    },
+
+    camSignal(v) {
+      return v == null ? null : `${v} dBm`;
     },
 
     // ── API: Command queue ────────────────────────────────────────

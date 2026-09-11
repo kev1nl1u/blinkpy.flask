@@ -86,7 +86,9 @@
     "today": "Oggi",
     "yesterday": "Ieri",
     "download_all": "Scarica tutte le clip",
-    "download_all_started": "Download avviati"
+    "download_all_started": "Download avviati",
+    "theme_light": "Tema chiaro",
+    "theme_dark": "Tema scuro"
   },
   "download": {
     "updating_videos": "Aggiornamento video",
@@ -178,5 +180,24 @@
     "unit_hour": "h",
     "unit_min": "min",
     "update": "Aggiorna"
+  },
+  "cameras": {
+    "title": "Telecamere",
+    "panel_label": "Dati telecamere",
+    "empty": "Nessuna telecamera",
+    "loading": "Caricamento…",
+    "offline": "Blink non connesso",
+    "error": "Errore caricamento telecamere",
+    "temperature": "Temperatura",
+    "battery": "Batteria",
+    "wifi": "Wi-Fi",
+    "sync": "Modulo",
+    "last_record": "Ultimo movimento",
+    "battery_ok": "OK",
+    "battery_low": "Bassa",
+    "armed": "Attiva",
+    "disarmed": "Disattivata",
+    "updated": "Aggiornato",
+    "refresh": "Aggiorna"
   }
 }

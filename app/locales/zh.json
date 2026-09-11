@@ -86,7 +86,9 @@
     "today": "今天",
     "yesterday": "昨天",
     "download_all": "下载所有剪辑",
-    "download_all_started": "已开始下载"
+    "download_all_started": "已开始下载",
+    "theme_light": "浅色主题",
+    "theme_dark": "深色主题"
   },
   "download": {
     "updating_videos": "正在更新视频",
@@ -178,5 +180,24 @@
     "unit_hour": "小时",
     "unit_min": "分",
     "update": "更新"
+  },
+  "cameras": {
+    "title": "摄像头",
+    "panel_label": "摄像头数据",
+    "empty": "没有摄像头",
+    "loading": "加载中…",
+    "offline": "Blink 未连接",
+    "error": "无法加载摄像头",
+    "temperature": "温度",
+    "battery": "电池",
+    "wifi": "Wi-Fi",
+    "sync": "同步模块",
+    "last_record": "最近移动",
+    "battery_ok": "正常",
+    "battery_low": "电量低",
+    "armed": "开启",
+    "disarmed": "关闭",
+    "updated": "更新于",
+    "refresh": "刷新"
   }
 }

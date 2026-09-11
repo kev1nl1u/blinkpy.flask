@@ -1,0 +1,40 @@
+<!-- Language picker as a menu row: the list expands inside the menu instead of
+     opening a second floating layer next to it. -->
+<div>
+  <button
+    @click="showLangMenu = !showLangMenu"
+    class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium cursor-pointer t-smooth t-text"
+    style="transition: background-color 0.15s"
+    onmouseenter="this.style.background='var(--raised)'" onmouseleave="this.style.background=''"
+    :aria-expanded="showLangMenu ? 'true' : 'false'"
+  >
+    <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3 7.5 7.03 7.5 12s2.015 9 4.5 9ZM3.6 9h16.8M3.6 15h16.8" />
+    </svg>
+    {{ t('language.select') }}
+    <span class="ml-auto flex items-center gap-1.5">
+      <span x-text="({en:'🇬🇧',it:'🇮🇹',zh:'🇨🇳'})[currentLang]" class="text-base leading-none"></span>
+      <svg class="w-3.5 h-3.5 t-sub" style="transition: transform 0.2s" :style="showLangMenu ? 'transform: rotate(180deg)' : ''"
+           fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+      </svg>
+    </span>
+  </button>
+
+  <div class="overflow-hidden" style="transition: max-height 0.2s ease; background: var(--raised)"
+       :style="showLangMenu ? 'max-height: 160px' : 'max-height: 0'">
+    <template x-for="lang in [{code:'en',label:'English',flag:'🇬🇧'},{code:'it',label:'Italiano',flag:'🇮🇹'},{code:'zh',label:'中文',flag:'🇨🇳'}]" :key="lang.code">
+      <button
+        @click="changeLanguage(lang.code)"
+        class="w-full flex items-center gap-3 pl-11 pr-4 py-2.5 text-sm cursor-pointer t-smooth"
+        :class="currentLang === lang.code ? 'font-semibold t-text' : 'font-medium t-sub'"
+      >
+        <span x-text="lang.flag" class="text-base leading-none flex-shrink-0"></span>
+        <span x-text="lang.label"></span>
+        <svg x-show="currentLang === lang.code" class="w-4 h-4 ml-auto t-accent" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+        </svg>
+      </button>
+    </template>
+  </div>
+</div>
