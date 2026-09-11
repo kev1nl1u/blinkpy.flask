@@ -1,4 +1,5 @@
 import shutil
+import time
 from datetime import datetime
 from app.services import rearm
 from app.services.blink import run_sync
@@ -74,6 +75,83 @@ def blink_refresh():
         return jsonify({"ok": True, "armed": armed})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# The homescreen payload carries the sensor values; anything older than this
+# is re-fetched when the camera panel asks for them, so the numbers on screen
+# are never hours old.
+CAMERA_STALE_SECONDS = 300
+
+
+def _camera_payload(name, cam):
+    """Flatten a blinkpy camera into the fields the UI shows."""
+    attrs = cam.attributes
+    temp_f = attrs.get("temperature_calibrated")
+    if temp_f is None:
+        temp_f = attrs.get("temperature")
+    try:
+        temp_c = round((float(temp_f) - 32) / 9.0 * 5.0, 1)
+    except (TypeError, ValueError):
+        temp_c = None
+
+    last_record = attrs.get("last_record")
+    if hasattr(last_record, "isoformat"):
+        last_record = last_record.isoformat()
+    elif last_record is not None:
+        last_record = str(last_record)
+
+    return {
+        "name":            attrs.get("name") or name,
+        "id":              attrs.get("camera_id"),
+        "module":          attrs.get("sync_module"),
+        "type":            attrs.get("type"),
+        "armed":           attrs.get("motion_enabled"),
+        "temperature_c":   temp_c,
+        "temperature_f":   temp_f,
+        "battery":         attrs.get("battery"),
+        "battery_level":   attrs.get("battery_level"),
+        "battery_voltage": attrs.get("battery_voltage"),
+        "wifi_strength":   attrs.get("wifi_strength"),
+        "sync_signal":     attrs.get("sync_signal_strength"),
+        "version":         attrs.get("version"),
+        "last_record":     last_record,
+    }
+
+
+@bp.route('/cameras')
+@login_required
+def get_cameras():
+    """Per-camera telemetry (temperature, battery, signal) for the camera panel."""
+    blink_service = current_app.extensions.get("blink_service")
+    if not blink_service or not blink_service.started or not blink_service.blink:
+        return jsonify({"error": "Blink service not connected"}), 400
+
+    blink = blink_service.blink
+    last  = getattr(blink, "last_refresh", None)
+    if not last or (time.time() - last) > CAMERA_STALE_SECONDS:
+        try:
+            def _refresh():
+                return blink.refresh(force=True)
+            blink_service.submit(1, _refresh, timeout=120, label="refresh")
+        except BlinkTwoFARequiredError:
+            blink_service.awaiting_2fa = True
+            return jsonify({"error": "2FA required", "awaiting_2fa": True}), 401
+        except Exception:
+            # Stale readings still beat an empty panel.
+            pass
+
+    cameras = []
+    for name, cam in (blink.cameras or {}).items():
+        try:
+            cameras.append(_camera_payload(name, cam))
+        except Exception:
+            continue
+    cameras.sort(key=lambda c: (c["name"] or "").lower())
+
+    return jsonify({
+        "cameras":      cameras,
+        "last_refresh": getattr(blink, "last_refresh", None),
+    }), 200
 
 
 @bp.route('/local-videos')

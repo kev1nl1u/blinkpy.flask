@@ -1,0 +1,115 @@
+<!-- Camera telemetry. Lives in the column flow, not in a floating layer, so
+     opening it slides the list below down instead of covering it. -->
+<div
+  class="flex-shrink-0 overflow-hidden"
+  style="transition: max-height 0.3s cubic-bezier(0.16,1,0.3,1)"
+  :style="camerasOpen ? 'max-height: 60vh' : 'max-height: 0'"
+  :aria-hidden="camerasOpen ? 'false' : 'true'"
+>
+  <div class="px-4 pb-3 max-w-lg mx-auto w-full">
+    <div class="rounded-2xl overflow-hidden" style="background: var(--surface); border: 1px solid var(--border-s)">
+
+      <div class="flex items-center gap-2 px-4 py-2.5" style="border-bottom: 1px solid var(--border-s)">
+        <p class="text-xs font-medium uppercase tracking-widest t-sub font-mono">{{ t('cameras.title') }}</p>
+        <span
+          x-show="camerasUpdated"
+          class="ml-auto text-[11px] font-mono t-sub"
+          x-text="'{{ t('cameras.updated') }} ' + camerasUpdated"
+        ></span>
+        <button
+          @click="fetchCameras()"
+          :disabled="camerasLoading || !blinkConnected"
+          :class="camerasUpdated ? '' : 'ml-auto'"
+          class="p-1 rounded-lg t-sub cursor-pointer disabled:opacity-40"
+          aria-label="{{ t('cameras.refresh') }}"
+        >
+          <svg class="w-4 h-4" :class="camerasLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Skeleton on the very first open -->
+      <div x-show="camerasLoading && !cameras.length" class="p-4 space-y-2">
+        <div class="skeleton h-14 w-full rounded-xl"></div>
+        <div class="skeleton h-14 w-full rounded-xl"></div>
+      </div>
+
+      <p
+        x-show="camerasFetched && !camerasLoading && !cameras.length"
+        class="px-4 py-5 text-sm t-sub"
+        x-text="blinkConnected ? '{{ t('cameras.empty') }}' : '{{ t('cameras.offline') }}'"
+      ></p>
+
+      <div class="overflow-y-auto" style="max-height: 46vh">
+        <template x-for="(cam, idx) in cameras" :key="cam.id ?? cam.name">
+          <div class="px-4 py-3 space-y-2" :style="idx ? 'border-top: 1px solid var(--border-s)' : ''">
+
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-semibold t-text truncate" x-text="cam.name"></p>
+              <span
+                class="ml-auto flex-shrink-0 text-[10px] font-bold font-mono uppercase tracking-wider px-2 py-0.5 rounded-full"
+                :style="cam.armed === true
+                  ? 'background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12); color: var(--accent)'
+                  : 'background: var(--raised); color: var(--sub)'"
+                x-text="cam.armed === true ? '{{ t('cameras.armed') }}' : '{{ t('cameras.disarmed') }}'"
+              ></span>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5">
+              <template x-if="camTemp(cam)">
+                <span class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono t-sub" style="background: var(--raised)">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                  </svg>
+                  <span x-text="camTemp(cam)"></span>
+                </span>
+              </template>
+
+              <template x-if="camBattery(cam)">
+                <span
+                  class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono"
+                  :class="camBatteryLow(cam) ? '' : 't-sub'"
+                  :style="camBatteryLow(cam) ? 'background: rgba(220,38,38,0.1); color: var(--danger)' : 'background: var(--raised)'"
+                >
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 10.5h.375c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125H21M3.75 18h15A2.25 2.25 0 0 0 21 15.75v-6a2.25 2.25 0 0 0-2.25-2.25h-15A2.25 2.25 0 0 0 1.5 9.75v6A2.25 2.25 0 0 0 3.75 18Z" />
+                  </svg>
+                  <span x-text="camBattery(cam)"></span>
+                  <span x-show="cam.battery_voltage" class="opacity-70" x-text="(cam.battery_voltage / 100).toFixed(2) + 'V'"></span>
+                </span>
+              </template>
+
+              <template x-if="camSignal(cam.wifi_strength)">
+                <span class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono t-sub" style="background: var(--raised)">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 0 1 1.06 0Z" />
+                  </svg>
+                  <span x-text="camSignal(cam.wifi_strength)"></span>
+                </span>
+              </template>
+
+              <template x-if="camSignal(cam.sync_signal)">
+                <span class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono t-sub" style="background: var(--raised)">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25" />
+                  </svg>
+                  <span x-text="'{{ t('cameras.sync') }} ' + camSignal(cam.sync_signal)"></span>
+                </span>
+              </template>
+
+              <template x-if="cam.last_record">
+                <span class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono t-sub" style="background: var(--raised)">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  <span x-text="fmtNextRun(cam.last_record)"></span>
+                </span>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>
